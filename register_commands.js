@@ -1,32 +1,24 @@
-const { REST }   = require("@discordjs/rest");
-const { Routes } = require("discord-api-types/v10");
+import dotenv from "dotenv";
+import { REST } from "@discordjs/rest";
+import { Routes } from "discord-api-types/v10";
 
-require("dotenv").config();
+// Import local files
+import { CommandManager } from "./CommandManager.js";
 
-const commands = [
-    {
-        name:        "ping",
-        description: "Ping the bot",
-    },
-    {
-        name:        "help",
-        description: "Show the list of commands",
-    },
-];
+dotenv.config();
 
-// noinspection JSClosureCompilerSyntax,JSCheckFunctionSignatures
 const rest      = new REST({ version: "10" }).setToken(process.env["DISCORD_TOKEN"]);
 const client_id = process.env["DISCORD_CLIENT_ID"];
 const guild_id  = process.env["DISCORD_GUILD_ID"];
 
 (async () => {
     try {
-        console.log("Started refreshing application (/) commands");
+        console.log("Refreshing slash commands");
 
         await rest.put(
             Routes.applicationGuildCommands(client_id, guild_id),
             {
-                body: commands,
+                body: CommandManager.commands, // add commands
             },
         );
     } catch (e) {
