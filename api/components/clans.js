@@ -1,0 +1,1 @@
+// Access clan specific information
