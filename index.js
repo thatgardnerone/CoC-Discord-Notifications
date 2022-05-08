@@ -1,26 +1,24 @@
 import { Client, Intents } from "discord.js";
-import axios from "axios";
 import dotenv from "dotenv";
+
+import { CoC } from "./api/CoC.js";
 
 // Import local files
 
 dotenv.config();
 
-const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
+const discord = new Client({ intents: [Intents.FLAGS.GUILDS] });
 
-async function getClanInfo() {
-    const response = await instance.get("clans/" + coc_clan_tag);
-    return response.data;
-}
+const clanTag = process.env["COC_CLAN_TAG"];
 
-client.on("ready", async () => {
-    console.log(`Logged in as ${client.user.tag}!`);
+const coc  = new CoC();
+const clan = coc.clans(clanTag);
 
-    const info = await getClanInfo();
-    console.log(`Clan info:\n${JSON.stringify(info.name)}`);
+discord.on("ready", async () => {
+    console.log(`Logged in as ${discord.user.tag}!`);
 });
 
-client.on("interactionCreate", async (interaction) => {
+discord.on("interactionCreate", async (interaction) => {
     if (!interaction.isCommand()) return;
 
     switch (interaction.commandName) {
@@ -28,10 +26,18 @@ client.on("interactionCreate", async (interaction) => {
             await interaction.reply("Pong!");
             break;
         case "clan_info":
-            const info = await getClanInfo();
-            await interaction.reply(JSON.stringify(info.name))
+            clan.info.then(async (res) => {
+                    const data = res.data;
+                    const info = "\n**Name:\t**" + `${data["name"]} ` + `(\`${data["tag"]}\`)` +
+                                 "\n**Description:\t**" + data["description"] +
+                                 "\n**Members:\t**" + `\`${data["members"]}\`` +
+                                 "\n**Clan Level:\t**" + `\`${data["clanLevel"]}\`` +
+                                 "\n**Location:\t**" + data["location"]["name"] + "\n";
+                    await interaction.reply(info);
+                },
+            );
             break;
     }
 });
 
-client.login(process.env.DISCORD_TOKEN);
+discord.login(process.env["DISCORD_TOKEN"]);
