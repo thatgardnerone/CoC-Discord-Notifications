@@ -1,12 +1,18 @@
 {
+  "dependencies": {
+    "@discordjs/rest": "^0.4.1",
+    "discord-api-types": "^0.32.1",
+    "discord.js": "^13.6.0",
+    "dotenv": "^16.0.0"
+  },
   "name": "coc_discord_notifications",
   "version": "1.0.0",
-  "description": "",
+  "description": "Clash of Clans Discord Notifications",
   "main": "index.js",
+  "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
-  "keywords": [],
   "author": "",
   "license": "ISC"
 }
