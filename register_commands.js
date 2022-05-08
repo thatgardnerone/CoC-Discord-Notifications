@@ -13,7 +13,7 @@ const guild_id  = process.env["DISCORD_GUILD_ID"];
 
 (async () => {
     try {
-        console.log("Refreshing slash commands");
+        console.log(`Refreshing slash commands (Guild: ${guild_id})`);
 
         await rest.put(
             Routes.applicationGuildCommands(client_id, guild_id),

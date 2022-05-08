@@ -10,12 +10,13 @@ dotenv.config();
 const discord = new Client({ intents: [Intents.FLAGS.GUILDS] });
 
 const clanTag = process.env["COC_CLAN_TAG"];
+const guild_id  = process.env["DISCORD_GUILD_ID"];
 
 const coc  = new CoC();
 const clan = coc.clans(clanTag);
 
 discord.on("ready", async () => {
-    console.log(`Logged in as ${discord.user.tag}!`);
+    console.log(`Logged in as ${discord.user.tag} for guild ${guild_id}!`);
 });
 
 discord.on("interactionCreate", async (interaction) => {
@@ -23,9 +24,11 @@ discord.on("interactionCreate", async (interaction) => {
 
     switch (interaction.commandName) {
         case "ping":
+            console.log("Info: responding to ping");
             await interaction.reply("Pong!");
             break;
         case "clan_info":
+            console.log("Info: responding to clan_info");
             clan.info.then(async (res) => {
                     const data = res.data;
                     const info = "\n**Name:\t**" + `${data["name"]} ` + `(\`${data["tag"]}\`)` +
