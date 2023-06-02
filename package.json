@@ -1,0 +1,19 @@
+{
+  "name": "coc_discord_bot",
+  "version": "1.0.0",
+  "author": "Jamie Gardner",
+  "license": "ISC",
+  "description": "Discord bot for Clash of Clans",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.11.0",
+    "dotenv": "^16.1.3"
+  },
+  "devDependencies": {
+    "eslint": "^8.41.0"
+  }
+}
