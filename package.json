@@ -6,7 +6,8 @@
   "description": "Discord bot for Clash of Clans",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "commands:reload": "node app/console/deploy-commands.js"
   },
   "dependencies": {
     "discord.js": "^14.11.0",

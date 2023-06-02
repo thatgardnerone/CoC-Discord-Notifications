@@ -6,7 +6,9 @@ const loadCommands = () => {
     const commands = new Collection();
 
     const foldersPath = path.join(__dirname, '/');
-    const commandFolders = fs.readdirSync(foldersPath);
+    const commandFolders = fs.readdirSync(foldersPath).filter(
+        file => fs.lstatSync(path.join(foldersPath, file)).isDirectory()
+    );
 
     for (const folder of commandFolders) {
         const commandsPath = path.join(foldersPath, folder);
