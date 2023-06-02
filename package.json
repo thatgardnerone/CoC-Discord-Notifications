@@ -4,7 +4,6 @@
   "author": "Jamie Gardner",
   "license": "ISC",
   "description": "Discord bot for Clash of Clans",
-  "type": "module",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
