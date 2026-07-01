@@ -82,6 +82,14 @@ describe("loadConfig", () => {
         }
     });
 
+    it("defaults the DB path and honours COC_DB_PATH", () => {
+        expect(loadConfig(validEnv).storage.dbPath).toBe("data/coc.db");
+        expect(
+            loadConfig({ ...validEnv, COC_DB_PATH: "/srv/coc-bot/shared/data/coc.db" }).storage
+                .dbPath,
+        ).toBe("/srv/coc-bot/shared/data/coc.db");
+    });
+
     it("returns a deeply immutable config", () => {
         const cfg = loadConfig(validEnv);
         expect(() => {

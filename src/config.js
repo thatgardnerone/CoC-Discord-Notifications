@@ -9,6 +9,7 @@
  * @property {{ token: string, clanTag: string }} coc
  * @property {Record<ChannelKey, string | null>} channels
  * @property {{ warSeconds: number, membersSeconds: number, capitalSeconds: number }} poll
+ * @property {{ dbPath: string }} storage
  *
  * @typedef {"warReminders"|"warLog"|"cwl"|"capital"|"clanFeed"|"verify"} ChannelKey
  */
@@ -154,5 +155,6 @@ export function loadConfig(env = process.env) {
         coc: { token: req("COC_TOKEN"), clanTag },
         channels,
         poll,
+        storage: { dbPath: env.COC_DB_PATH?.trim() || "data/coc.db" },
     });
 }
