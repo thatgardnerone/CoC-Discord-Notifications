@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "allowJs": true,
+        "checkJs": true,
+        "noEmit": true,
+        "strict": true,
+        "skipLibCheck": true,
+        "resolveJsonModule": true,
+        "types": ["node"]
+    },
+    "//": "Typecheck new foundation code under src/ and its tests. Legacy root files (index.js, api/*) are migrated into src/ as they are refactored (see #18).",
+    "include": ["src/**/*.js", "test/**/*.js"],
+    "exclude": ["node_modules", "coverage"]
+}
