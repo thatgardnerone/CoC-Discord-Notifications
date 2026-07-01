@@ -87,6 +87,18 @@ describe("members watcher", () => {
         expect(store.setSnapshot).toHaveBeenCalledWith("members", current);
     });
 
+    it("ignores an empty roster (bad payload): no post, no snapshot clobber", async () => {
+        // A live clan is never empty — an empty result means a malformed response,
+        // not that all 50 members left. Must not broadcast leaves or persist [].
+        const previous = [member("#A"), member("#B")];
+        const { notifier, store, watcher } = harness({ current: [], previous });
+
+        await watcher.poll();
+
+        expect(notifier.send).not.toHaveBeenCalled();
+        expect(store.setSnapshot).not.toHaveBeenCalled();
+    });
+
     it("does not advance the snapshot when the fetch fails", async () => {
         const membersService = { getMembers: vi.fn().mockRejectedValue(new Error("boom")) };
         const store = { getSnapshot: vi.fn(), setSnapshot: vi.fn() };

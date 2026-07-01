@@ -172,8 +172,8 @@ describe("membership embeds", () => {
             { type: "townHallUpgrade", member: m("Dee"), from: 14, to: 15 },
             { type: "nameChange", member: m("Eve"), from: "Evelyn", to: "Eve" },
         ]).toJSON();
-        expect(data.description).toContain("📥 **Ann** joined");
-        expect(data.description).toContain("📤 **Bob** left");
+        expect(data.description).toContain("📥 **Ann** joined — TH15, 4000🏆, Member");
+        expect(data.description).toContain("📤 **Bob** left — TH13, 4000🏆");
         expect(data.description).toContain("⬆️ **Cid** promoted to Co-Leader (was Elder)");
         expect(data.description).toContain("🏠 **Dee** upgraded to TH15 (was TH14)");
         expect(data.description).toContain("✏️ **Evelyn** is now known as **Eve**");

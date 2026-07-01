@@ -152,9 +152,9 @@ export function membershipEmbed(events) {
     const line = (/** @type {import("../features/members.js").MemberEvent} */ e) => {
         switch (e.type) {
             case "join":
-                return `📥 **${e.member.name}** joined — TH${e.member.townHall}, ${roleLabel(e.member.role)}`;
+                return `📥 **${e.member.name}** joined — TH${e.member.townHall}, ${e.member.trophies}🏆, ${roleLabel(e.member.role)}`;
             case "leave":
-                return `📤 **${e.member.name}** left — TH${e.member.townHall}`;
+                return `📤 **${e.member.name}** left — TH${e.member.townHall}, ${e.member.trophies}🏆`;
             case "roleChange":
                 return `${e.promoted ? "⬆️" : "⬇️"} **${e.member.name}** ${e.promoted ? "promoted" : "demoted"} to ${roleLabel(e.to)} (was ${roleLabel(e.from)})`;
             case "townHallUpgrade":

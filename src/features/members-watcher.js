@@ -31,6 +31,16 @@ export function createMembersWatcher({
             // Let fetch errors propagate to the scheduler (which logs + retries);
             // don't advance the snapshot on a failed fetch.
             const current = await membersService.getMembers();
+
+            // Floor against a malformed/empty payload: a live clan is never empty
+            // (the bot's own clan has members), so an empty roster means a bad
+            // response, not a mass exodus. Skip without diffing or persisting —
+            // else we'd broadcast "everyone left" and clobber the snapshot with [].
+            if (current.length === 0) {
+                logger.info("empty roster returned; skipping members poll");
+                return;
+            }
+
             const previous = store.getSnapshot(key);
 
             // Best-effort delivery: the notifier never throws, and we always
