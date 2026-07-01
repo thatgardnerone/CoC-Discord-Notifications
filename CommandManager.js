@@ -18,6 +18,10 @@ export const CommandManager = {
                 description: "Show the clan roster sorted by role and trophies",
             },
             {
+                name: "raid",
+                description: "Show the current or most recent Clan Capital raid weekend",
+            },
+            {
                 name: "debug_war",
                 description: "(Admin) Post a debug war-start preview to the war-log channel",
                 // Only members with Manage Server see/use this (bitfield for ManageGuild = 32).

@@ -10,6 +10,10 @@ import {
     cwlStatusEmbed,
     membershipEmbed,
     rosterEmbed,
+    raidStartEmbed,
+    raidEndEmbed,
+    capitalMissedEmbed,
+    capitalLeaderboardEmbed,
 } from "../src/discord/embeds.js";
 
 /** @type {import("../src/features/war.js").ActiveWar} */
@@ -207,5 +211,65 @@ describe("membership embeds", () => {
 
     it("rosterEmbed does not throw on an empty roster", () => {
         expect(() => rosterEmbed([]).toJSON()).not.toThrow();
+    });
+});
+
+describe("capital embeds", () => {
+    /**
+     * @param {Partial<import("../src/features/capital.js").RaidSeason>} [over]
+     * @returns {import("../src/features/capital.js").RaidSeason}
+     */
+    const raid = (over = {}) => ({
+        state: "ended",
+        startTime: "20260626T070000.000Z",
+        endTime: "20260629T070000.000Z",
+        totalLoot: 320582,
+        raidsCompleted: 6,
+        totalAttacks: 84,
+        districtsDestroyed: 29,
+        offensiveReward: 188,
+        defensiveReward: 224,
+        members: [],
+        ...over,
+    });
+
+    it("raidStartEmbed announces the weekend with an end time", () => {
+        const data = raidStartEmbed(raid({ state: "ongoing" })).toJSON();
+        expect(data.title).toContain("Raid weekend");
+        expect((data.fields ?? []).find((f) => f.name === "Ends")).toBeTruthy();
+    });
+
+    it("raidEndEmbed shows loot, districts and medals (formatted)", () => {
+        const data = raidEndEmbed(raid()).toJSON();
+        const fields = data.fields ?? [];
+        expect(fields.find((f) => f.name === "Capital Gold")?.value).toContain("320,582");
+        expect(fields.find((f) => f.name === "Districts Destroyed")?.value).toBe("29");
+        expect(fields.find((f) => f.name === "Offence Medals")?.value).toContain("188");
+    });
+
+    it("raidEndEmbed title reflects whether the weekend is live (for /raid reuse)", () => {
+        expect(raidEndEmbed(raid({ state: "ongoing" })).toJSON().title).toContain("so far");
+        expect(raidEndEmbed(raid({ state: "ended" })).toJSON().title).toContain("over");
+    });
+
+    it("capitalMissedEmbed lists missers, or celebrates when none", () => {
+        const missed = capitalMissedEmbed([{ name: "Bob", used: 4, allowed: 6 }]).toJSON();
+        expect(missed.description).toContain("**Bob** — used 4/6");
+
+        const clean = capitalMissedEmbed([]).toJSON();
+        expect(clean.description).toContain("used all their attacks");
+    });
+
+    it("capitalLeaderboardEmbed medals the top three and formats loot", () => {
+        const data = capitalLeaderboardEmbed([
+            { tag: "#A", name: "Ann", attacksUsed: 6, attacksAllowed: 6, looted: 25293 },
+            { tag: "#B", name: "Bob", attacksUsed: 6, attacksAllowed: 6, looted: 12000 },
+        ]).toJSON();
+        expect(data.description).toContain("🥇 **Ann** — 25,293");
+        expect(data.description).toContain("🥈 **Bob** — 12,000");
+    });
+
+    it("capitalLeaderboardEmbed does not throw on no participants", () => {
+        expect(() => capitalLeaderboardEmbed([]).toJSON()).not.toThrow();
     });
 });
