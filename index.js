@@ -43,8 +43,12 @@ const scheduler = createScheduler({
         logger.error("poll failed", { message: err instanceof Error ? err.message : String(err) }),
 });
 
+let started = false;
 discord.once("clientReady", () => {
     logger.info("logged in", { user: discord.user?.tag, guild: config.discord.guildId });
+    // Guard against a re-fired ready (gateway reconnect) double-registering intervals.
+    if (started) return;
+    started = true;
     // Start polling once connected, so the notifier can resolve channels.
     scheduler.every(config.poll.warSeconds, () => warWatcher.poll());
     scheduler.every(
@@ -81,11 +85,14 @@ discord.on("interactionCreate", async (interaction) => {
                     break;
                 }
                 await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+                const nowSec = Math.floor(Date.now() / 1000);
+                const asCocTime = (unixSec) =>
+                    new Date(unixSec * 1000).toISOString().replace(/[-:]/g, "");
                 const sample = {
                     state: "inWar",
                     teamSize: 15,
-                    startTime: undefined,
-                    endTime: undefined,
+                    startTime: asCocTime(nowSec - 3600),
+                    endTime: asCocTime(nowSec + 82800),
                     clan: { name: "Our Clan", tag: config.coc.clanTag, stars: 0, destruction: 0 },
                     opponent: { name: "Debug Opponent", tag: "#DEBUG", stars: 0, destruction: 0 },
                 };

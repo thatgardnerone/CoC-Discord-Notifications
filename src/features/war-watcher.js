@@ -32,12 +32,19 @@ export function createWarWatcher({ warService, store, notifier, logger = console
             }
             const previous = store.getSnapshot(key);
 
-            for (const event of detectWarEvents(previous, current)) {
-                await notifier.send("warLog", { embeds: [embedFor(event)] });
-                logger.info(`war event posted: ${event.type}`);
+            // Best-effort delivery: the notifier never throws (it logs and returns
+            // false on failure), and we always advance the snapshot once we have a
+            // valid current war — so a transient send failure drops that one
+            // notification rather than re-posting it (and every later transition)
+            // on the next poll. The finally is belt-and-suspenders for that invariant.
+            try {
+                for (const event of detectWarEvents(previous, current)) {
+                    const sent = await notifier.send("warLog", { embeds: [embedFor(event)] });
+                    logger.info(`war event ${sent ? "posted" : "dropped"}: ${event.type}`);
+                }
+            } finally {
+                store.setSnapshot(key, current);
             }
-
-            store.setSnapshot(key, current);
         },
     };
 }

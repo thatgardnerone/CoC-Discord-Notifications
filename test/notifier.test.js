@@ -53,4 +53,19 @@ describe("notifier (channel routing)", () => {
 
         expect(sent).toBe(false);
     });
+
+    it("never throws: logs and returns false when the Discord send fails", async () => {
+        const channel = {
+            isTextBased: () => true,
+            send: vi.fn().mockRejectedValue(new Error("discord 500")),
+        };
+        const client = fakeClient(channel);
+        const logger = { warn: vi.fn(), info: vi.fn(), error: vi.fn() };
+        const notifier = createNotifier({ client, channels, logger });
+
+        const sent = await notifier.send("warLog", { content: "x" });
+
+        expect(sent).toBe(false);
+        expect(logger.error).toHaveBeenCalled();
+    });
 });
