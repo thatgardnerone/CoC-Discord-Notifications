@@ -15,6 +15,10 @@
  * An empty `prev` yields all-added and nothing removed, so a first run (no
  * baseline) never emits spurious "left" events.
  *
+ * Precondition: `keyFn` must be unique within each snapshot. Collisions collapse
+ * (last-wins) with no signal, so callers must key on something unique (member
+ * tag, war attack order) — never a repeated field.
+ *
  * @template T
  * @param {T[]} prev
  * @param {T[]} curr
@@ -46,7 +50,8 @@ export function diffBy(prev, curr, keyFn) {
 
 /**
  * Returns the subset of watched fields whose value differs between two versions
- * of the same item.
+ * of the same item. Comparison is shallow (`!==`), so watch primitive fields —
+ * an object/array field will always report as changed.
  *
  * @template {object} T
  * @param {T} before
