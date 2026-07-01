@@ -8,6 +8,8 @@ import {
     missedAttackEmbed,
     attackReminderMessage,
     cwlStatusEmbed,
+    membershipEmbed,
+    rosterEmbed,
 } from "../src/discord/embeds.js";
 
 /** @type {import("../src/features/war.js").ActiveWar} */
@@ -135,5 +137,75 @@ describe("war embeds", () => {
 
         const clean = missedAttackEmbed(activeWar, []).toJSON();
         expect(clean.description).toContain("Everyone used all their attacks");
+    });
+});
+
+describe("membership embeds", () => {
+    /**
+     * @param {string} name
+     * @param {Partial<import("../src/coc/members.js").Member>} [over]
+     * @returns {import("../src/coc/members.js").Member}
+     */
+    const m = (name, over = {}) => ({
+        tag: "#" + name,
+        name,
+        role: "member",
+        townHall: 14,
+        trophies: 4000,
+        donations: 0,
+        donationsReceived: 0,
+        clanRank: 1,
+        ...over,
+    });
+
+    it("membershipEmbed renders each event type in one embed", () => {
+        const data = membershipEmbed([
+            { type: "join", member: m("Ann", { townHall: 15, role: "member" }) },
+            { type: "leave", member: m("Bob", { townHall: 13 }) },
+            {
+                type: "roleChange",
+                member: m("Cid", { role: "coLeader" }),
+                from: "admin",
+                to: "coLeader",
+                promoted: true,
+            },
+            { type: "townHallUpgrade", member: m("Dee"), from: 14, to: 15 },
+            { type: "nameChange", member: m("Eve"), from: "Evelyn", to: "Eve" },
+        ]).toJSON();
+        expect(data.description).toContain("📥 **Ann** joined");
+        expect(data.description).toContain("📤 **Bob** left");
+        expect(data.description).toContain("⬆️ **Cid** promoted to Co-Leader (was Elder)");
+        expect(data.description).toContain("🏠 **Dee** upgraded to TH15 (was TH14)");
+        expect(data.description).toContain("✏️ **Evelyn** is now known as **Eve**");
+    });
+
+    it("membershipEmbed marks a demotion with the down arrow", () => {
+        const data = membershipEmbed([
+            {
+                type: "roleChange",
+                member: m("Cid", { role: "member" }),
+                from: "admin",
+                to: "member",
+                promoted: false,
+            },
+        ]).toJSON();
+        expect(data.description).toContain("⬇️ **Cid** demoted to Member (was Elder)");
+    });
+
+    it("rosterEmbed sorts by seniority then trophies and shows the count", () => {
+        const data = rosterEmbed([
+            m("Grunt", { role: "member", trophies: 3000 }),
+            m("Boss", { role: "leader", trophies: 5000 }),
+            m("HighGrunt", { role: "member", trophies: 4500 }),
+        ]).toJSON();
+        expect(data.title).toContain("(3/50)");
+        const body = data.description ?? "";
+        // Leader first, then the higher-trophy member before the lower one.
+        expect(body.indexOf("Boss")).toBeLessThan(body.indexOf("HighGrunt"));
+        expect(body.indexOf("HighGrunt")).toBeLessThan(body.indexOf("Grunt"));
+    });
+
+    it("rosterEmbed does not throw on an empty roster", () => {
+        expect(() => rosterEmbed([]).toJSON()).not.toThrow();
     });
 });

@@ -131,6 +131,72 @@ export function cwlStatusEmbed(war, round) {
         );
 }
 
+const ROLE_LABEL = {
+    member: "Member",
+    admin: "Elder",
+    coLeader: "Co-Leader",
+    leader: "Leader",
+};
+
+/** @param {import("../coc/members.js").Member["role"]} role */
+const roleLabel = (role) => ROLE_LABEL[role] ?? role;
+
+/**
+ * Batches all membership changes from a single poll into one clan-feed embed, so
+ * a busy poll posts one message rather than spamming one per change.
+ *
+ * @param {import("../features/members.js").MemberEvent[]} events
+ * @returns {EmbedBuilder}
+ */
+export function membershipEmbed(events) {
+    const line = (/** @type {import("../features/members.js").MemberEvent} */ e) => {
+        switch (e.type) {
+            case "join":
+                return `📥 **${e.member.name}** joined — TH${e.member.townHall}, ${roleLabel(e.member.role)}`;
+            case "leave":
+                return `📤 **${e.member.name}** left — TH${e.member.townHall}`;
+            case "roleChange":
+                return `${e.promoted ? "⬆️" : "⬇️"} **${e.member.name}** ${e.promoted ? "promoted" : "demoted"} to ${roleLabel(e.to)} (was ${roleLabel(e.from)})`;
+            case "townHallUpgrade":
+                return `🏠 **${e.member.name}** upgraded to TH${e.to} (was TH${e.from})`;
+            case "nameChange":
+                return `✏️ **${e.from}** is now known as **${e.to}**`;
+        }
+    };
+    const description = events.map(line).join("\n").slice(0, 4096) || "No changes.";
+    return new EmbedBuilder()
+        .setColor(0x3498db)
+        .setTitle("📋 Clan roster update")
+        .setDescription(description);
+}
+
+/**
+ * Renders the full roster as a monospaced table, sorted by seniority then
+ * trophies. Powers the /roster command.
+ *
+ * @param {import("../coc/members.js").Member[]} members
+ * @returns {EmbedBuilder}
+ */
+export function rosterEmbed(members) {
+    const ROLE_RANK = { leader: 0, coLeader: 1, admin: 2, member: 3 };
+    const sorted = [...members].sort(
+        (a, b) => ROLE_RANK[a.role] - ROLE_RANK[b.role] || b.trophies - a.trophies,
+    );
+    const rows = sorted.map((m) => {
+        const name = m.name.length > 15 ? m.name.slice(0, 14) + "…" : m.name;
+        return (
+            `${name.padEnd(15)} ${roleLabel(m.role).padEnd(9)} ` +
+            `TH${String(m.townHall).padEnd(2)} ${String(m.trophies).padStart(5)}🏆 ${String(m.donations).padStart(5)}↑`
+        );
+    });
+    // Code block for monospaced alignment; guard the 4096-char description cap.
+    const body = rows.join("\n").slice(0, 4000) || "No members.";
+    return new EmbedBuilder()
+        .setColor(0x2ecc71)
+        .setTitle(`📋 Clan Roster (${members.length}/50)`)
+        .setDescription("```\n" + body + "\n```");
+}
+
 /**
  * @param {import("../features/war.js").ActiveWar} war
  * @param {import("../features/war.js").WarResult} result
