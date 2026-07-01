@@ -132,7 +132,9 @@ discord.on("interactionCreate", async (interaction) => {
                     break;
                 }
                 const p = result.player;
-                const inClan = p.clanTag === config.coc.clanTag;
+                const inClan =
+                    p.clanTag != null &&
+                    normaliseTag(p.clanTag) === normaliseTag(config.coc.clanTag);
                 await interaction.editReply(
                     `✅ Linked **${p.name}** (${p.tag})` +
                         (inClan ? ` — ${roleLabel(p.role)} of ${p.clanName}.` : "."),
