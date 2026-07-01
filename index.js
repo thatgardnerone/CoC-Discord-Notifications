@@ -20,16 +20,18 @@ import { createCocClient } from "./src/coc/http.js";
 import { createClanService } from "./src/coc/clan.js";
 import { createWarService } from "./src/coc/war.js";
 import { createCwlService } from "./src/coc/cwl.js";
+import { createMembersService } from "./src/coc/members.js";
 import { createStore } from "./src/store.js";
 import { createScheduler } from "./src/scheduler.js";
 import { createNotifier } from "./src/discord/notifier.js";
 import { createWarWatcher } from "./src/features/war-watcher.js";
+import { createMembersWatcher } from "./src/features/members-watcher.js";
 import { createPlayerService } from "./src/coc/player.js";
 import { createLinkStore } from "./src/links.js";
 import { createLinker } from "./src/features/linking.js";
 import { applyClanRole } from "./src/discord/roles.js";
 import { normaliseTag } from "./src/coc/tag.js";
-import { clanInfoEmbed, warStartEmbed, cwlStatusEmbed } from "./src/discord/embeds.js";
+import { clanInfoEmbed, warStartEmbed, cwlStatusEmbed, rosterEmbed } from "./src/discord/embeds.js";
 
 /** @param {string | null} role */
 const roleLabel = (role) =>
@@ -57,6 +59,7 @@ const coc = createCocClient({ token: config.coc.token });
 const clanService = createClanService(coc, config.coc.clanTag);
 const warService = createWarService(coc, config.coc.clanTag);
 const cwlService = createCwlService(coc, config.coc.clanTag);
+const membersService = createMembersService(coc, config.coc.clanTag);
 const store = createStore(config.storage.dbPath);
 const discord = new Client({ intents: [GatewayIntentBits.Guilds] });
 const notifier = createNotifier({ client: discord, channels: config.channels, logger });
@@ -84,6 +87,7 @@ const cwlWatcher = createWarWatcher({
     key: "cwl",
     logChannel: "cwl",
 });
+const membersWatcher = createMembersWatcher({ membersService, store, notifier, logger });
 const playerService = createPlayerService(coc);
 const linker = createLinker({ playerService, linkStore });
 const scheduler = createScheduler({
@@ -138,6 +142,7 @@ discord.once("clientReady", () => {
     // Start polling once connected, so the notifier can resolve channels.
     scheduler.every(config.poll.warSeconds, () => warWatcher.poll());
     scheduler.every(config.poll.warSeconds, () => cwlWatcher.poll());
+    scheduler.every(config.poll.membersSeconds, () => membersWatcher.poll());
     scheduler.every(
         900,
         () => logger.info("heartbeat", { uptimeSec: Math.round(process.uptime()) }),
@@ -191,6 +196,13 @@ discord.on("interactionCreate", async (interaction) => {
                 await interaction.deferReply({ flags: MessageFlags.Ephemeral });
                 const clan = await clanService.getInfo();
                 await interaction.editReply({ embeds: [clanInfoEmbed(clan)] });
+                break;
+            }
+
+            case "roster": {
+                await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+                const members = await membersService.getMembers();
+                await interaction.editReply({ embeds: [rosterEmbed(members)] });
                 break;
             }
 

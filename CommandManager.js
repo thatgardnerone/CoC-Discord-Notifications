@@ -14,6 +14,10 @@ export const CommandManager = {
                 description: "Show the current Clan War League round and score",
             },
             {
+                name: "roster",
+                description: "Show the clan roster sorted by role and trophies",
+            },
+            {
                 name: "debug_war",
                 description: "(Admin) Post a debug war-start preview to the war-log channel",
                 // Only members with Manage Server see/use this (bitfield for ManageGuild = 32).
