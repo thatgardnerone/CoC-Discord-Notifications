@@ -3,17 +3,16 @@
  * previously-stored war snapshot with the freshly-polled one and emit an event
  * on each meaningful state transition.
  *
+ * @typedef {{ order: number, attackerTag: string, defenderTag: string, stars: number, destructionPercentage: number }} WarAttack
+ * @typedef {{ tag: string, name: string, mapPosition: number, townhallLevel: number, attacks: WarAttack[] }} WarMember
+ * @typedef {{ name: string, tag: string, stars: number, destruction: number, members: WarMember[] }} WarSide
  * @typedef {{ state: "notInWar" }} NotInWar
- * @typedef {Object} ActiveWar
- * @property {"preparation"|"inWar"|"warEnded"} state
- * @property {number} [teamSize]
- * @property {string} [startTime]
- * @property {string} [endTime]
- * @property {{ name: string, tag: string, stars: number, destruction: number, attacks?: number }} clan
- * @property {{ name: string, tag: string, stars: number, destruction: number }} opponent
+ * @typedef {{ state: "preparation"|"inWar"|"warEnded", teamSize?: number, attacksPerMember?: number, startTime?: string, endTime?: string, clan: WarSide, opponent: WarSide }} ActiveWar
  * @typedef {NotInWar | ActiveWar} WarSnapshot
  * @typedef {"win"|"lose"|"tie"} WarResult
  * @typedef {{ type: "warPreparation"|"warStart"|"warEnd", war: ActiveWar, result?: WarResult }} WarEvent
+ * @typedef {{ order: number, side: "clan"|"opponent", attackerTag: string, attackerName: string, defenderTag: string, stars: number, destructionPercentage: number }} LoggedAttack
+ * @typedef {{ tag: string, name: string, used: number, of: number }} MissedAttacker
  */
 
 /**
@@ -51,4 +50,60 @@ export function computeWarResult(war) {
         return clan.destruction > opponent.destruction ? "win" : "lose";
     }
     return "tie";
+}
+
+/**
+ * New attacks in `curr` not present in `prev`, across both sides, keyed by the
+ * war-global attack `order`. Only call this for the same ongoing war (i.e.
+ * prev.state === "inWar"), otherwise every attack looks new.
+ *
+ * @param {ActiveWar} prev
+ * @param {ActiveWar} curr
+ * @returns {LoggedAttack[]}
+ */
+export function detectNewAttacks(prev, curr) {
+    const seen = new Set(collectAttacks(prev).map((a) => a.order));
+    return collectAttacks(curr)
+        .filter((a) => !seen.has(a.order))
+        .sort((a, b) => a.order - b.order);
+}
+
+/**
+ * @param {ActiveWar} war
+ * @returns {LoggedAttack[]}
+ */
+function collectAttacks(war) {
+    /** @type {LoggedAttack[]} */
+    const out = [];
+    for (const side of /** @type {("clan"|"opponent")[]} */ (["clan", "opponent"])) {
+        for (const member of war[side].members) {
+            for (const attack of member.attacks) {
+                out.push({
+                    order: attack.order,
+                    side,
+                    attackerTag: member.tag,
+                    attackerName: member.name,
+                    defenderTag: attack.defenderTag,
+                    stars: attack.stars,
+                    destructionPercentage: attack.destructionPercentage,
+                });
+            }
+        }
+    }
+    return out;
+}
+
+/**
+ * Our clan members who used fewer than the allowed number of attacks.
+ *
+ * @param {ActiveWar} war
+ * @returns {MissedAttacker[]}
+ */
+export function computeMissedAttacks(war) {
+    // Default assumes a regular war (2). normaliseWar passes the real value
+    // through, so CWL (1) is respected whenever the API provides it.
+    const of = war.attacksPerMember ?? 2;
+    return war.clan.members
+        .map((member) => ({ tag: member.tag, name: member.name, used: member.attacks.length, of }))
+        .filter((member) => member.used < member.of);
 }

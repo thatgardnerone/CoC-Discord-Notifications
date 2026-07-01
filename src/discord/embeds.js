@@ -58,6 +58,44 @@ export function warStartEmbed(war) {
 }
 
 /**
+ * Batches new war attacks from a single poll into one embed (avoids one message
+ * per attack). 🟢 = our attack, 🔴 = opponent attack.
+ *
+ * @param {import("../features/war.js").LoggedAttack[]} attacks
+ * @returns {EmbedBuilder}
+ */
+export function attackLogEmbed(attacks) {
+    const lines = attacks.map((a) => {
+        const flag = a.side === "clan" ? "🟢" : "🔴";
+        return `${flag} **${a.attackerName}** — ${a.stars}⭐ (${a.destructionPercentage}%)`;
+    });
+    // Guard: setDescription("") throws in discord.js v14.
+    const description = lines.join("\n").slice(0, 4096) || "No new attacks.";
+    return new EmbedBuilder()
+        .setColor(0xe67e22)
+        .setTitle("⚔️ War attacks")
+        .setDescription(description);
+}
+
+/**
+ * @param {import("../features/war.js").ActiveWar} war
+ * @param {import("../features/war.js").MissedAttacker[]} missed
+ * @returns {EmbedBuilder}
+ */
+export function missedAttackEmbed(war, missed) {
+    const description = missed.length
+        ? missed
+              .map((m) => `• **${m.name}** — used ${m.used}/${m.of}`)
+              .join("\n")
+              .slice(0, 4096)
+        : "Everyone used all their attacks! 🎉";
+    return new EmbedBuilder()
+        .setColor(missed.length ? 0xe74c3c : 0x2ecc71)
+        .setTitle(`📋 Missed attacks — vs ${war.opponent.name}`)
+        .setDescription(description);
+}
+
+/**
  * @param {import("../features/war.js").ActiveWar} war
  * @param {import("../features/war.js").WarResult} result
  * @returns {EmbedBuilder}
