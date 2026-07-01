@@ -44,7 +44,7 @@ export function resolveRoleChange(cocRole, roleMap, currentRoleIds) {
 
     return {
         add: desired && !current.has(desired) ? [desired] : [],
-        remove: managed.filter((id) => id !== desired && current.has(id)),
+        remove: [...new Set(managed.filter((id) => id !== desired && current.has(id)))],
     };
 }
 

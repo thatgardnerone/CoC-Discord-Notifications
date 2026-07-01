@@ -89,8 +89,9 @@ async function runLink(interaction, tag, token) {
     if (inClan && interaction.guild) {
         try {
             const member = await interaction.guild.members.fetch(interaction.user.id);
-            const { add } = await applyClanRole(member, p.role, config.roles, logger);
+            const { add, remove } = await applyClanRole(member, p.role, config.roles, logger);
             if (add.length) roleNote = ` Assigned your **${roleLabel(p.role)}** role.`;
+            else if (remove.length) roleNote = " Updated your clan role.";
         } catch (err) {
             logger.warn("role assignment failed", {
                 message: err instanceof Error ? err.message : String(err),
