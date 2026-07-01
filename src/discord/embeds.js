@@ -131,6 +131,78 @@ export function cwlStatusEmbed(war, round) {
         );
 }
 
+/** @param {number} n @returns {string} */
+const num = (n) => n.toLocaleString("en-US");
+
+/**
+ * @param {import("../features/capital.js").RaidSeason} raid
+ * @returns {EmbedBuilder}
+ */
+export function raidStartEmbed(raid) {
+    return new EmbedBuilder()
+        .setColor(0xf1c40f)
+        .setTitle("🏰 Raid weekend has begun!")
+        .setDescription("Capital raids are open — everyone gets 6 attacks. Go get that loot!")
+        .addFields({ name: "Ends", value: discordTime(raid.endTime), inline: true });
+}
+
+/**
+ * End-of-weekend summary: loot, districts, raids completed and medals earned.
+ *
+ * @param {import("../features/capital.js").RaidSeason} raid
+ * @returns {EmbedBuilder}
+ */
+export function raidEndEmbed(raid) {
+    return new EmbedBuilder()
+        .setColor(0xe67e22)
+        .setTitle("🏰 Raid weekend over — here's the haul")
+        .addFields(
+            { name: "Capital Gold", value: `${num(raid.totalLoot)} 🟡`, inline: true },
+            { name: "Raids Completed", value: String(raid.raidsCompleted), inline: true },
+            { name: "Districts Destroyed", value: String(raid.districtsDestroyed), inline: true },
+            { name: "Total Attacks", value: String(raid.totalAttacks), inline: true },
+            { name: "Offence Medals", value: `${num(raid.offensiveReward)} 🏅`, inline: true },
+            { name: "Defence Medals", value: `${num(raid.defensiveReward)} 🛡️`, inline: true },
+        );
+}
+
+/**
+ * @param {import("../features/capital.js").RaidSeason} raid
+ * @param {{ name: string, used: number, allowed: number }[]} missed
+ * @returns {EmbedBuilder}
+ */
+export function capitalMissedEmbed(raid, missed) {
+    const description = missed.length
+        ? missed
+              .map((m) => `• **${m.name}** — used ${m.used}/${m.allowed}`)
+              .join("\n")
+              .slice(0, 4096)
+        : "Everyone who raided used all their attacks! 🎉";
+    return new EmbedBuilder()
+        .setColor(missed.length ? 0xe74c3c : 0x2ecc71)
+        .setTitle("📋 Unfinished raids")
+        .setDescription(description);
+}
+
+/**
+ * Capital-gold contribution leaderboard. Medals for the top three; loot shown
+ * per member. Caps the list to keep within embed limits.
+ *
+ * @param {import("../features/capital.js").RaidMember[]} board
+ * @returns {EmbedBuilder}
+ */
+export function capitalLeaderboardEmbed(board) {
+    const medal = ["🥇", "🥈", "🥉"];
+    const lines = board
+        .slice(0, 25)
+        .map((m, i) => `${medal[i] ?? `\`${i + 1}.\``} **${m.name}** — ${num(m.looted)} 🟡`);
+    const description = lines.join("\n").slice(0, 4096) || "No participants.";
+    return new EmbedBuilder()
+        .setColor(0xf1c40f)
+        .setTitle("🏆 Capital gold contributions")
+        .setDescription(description);
+}
+
 const ROLE_LABEL = {
     member: "Member",
     admin: "Elder",
