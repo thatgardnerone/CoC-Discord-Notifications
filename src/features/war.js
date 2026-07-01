@@ -13,7 +13,7 @@
  * @property {{ name: string, tag: string, stars: number, destruction: number }} opponent
  * @typedef {NotInWar | ActiveWar} WarSnapshot
  * @typedef {"win"|"lose"|"tie"} WarResult
- * @typedef {{ type: "warPreparation"|"warStart"|"warEnd", war: WarSnapshot, result?: WarResult }} WarEvent
+ * @typedef {{ type: "warPreparation"|"warStart"|"warEnd", war: ActiveWar, result?: WarResult }} WarEvent
  */
 
 /**
