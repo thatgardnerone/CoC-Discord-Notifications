@@ -45,8 +45,8 @@ function normaliseSide(side) {
     return {
         name: side.name,
         tag: side.tag,
-        stars: side.stars,
-        destruction: side.destructionPercentage,
+        stars: side.stars ?? 0,
+        destruction: side.destructionPercentage ?? 0,
         members: (side.members ?? []).map(
             /** @param {any} m */ (m) => ({
                 tag: m.tag,

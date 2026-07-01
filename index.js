@@ -187,11 +187,17 @@ discord.on("interactionCreate", async (interaction) => {
                     });
                 } else {
                     const group = await cwlService.getLeagueGroup();
-                    await interaction.editReply(
-                        group
-                            ? `No active CWL war right now — last season **${group.season}** (${group.state}).`
-                            : "Not currently in Clan War League.",
-                    );
+                    if (group && (group.state === "inWar" || group.state === "preparation")) {
+                        await interaction.editReply(
+                            "CWL is active but I couldn't resolve our current war right now — try again in a moment.",
+                        );
+                    } else if (group) {
+                        await interaction.editReply(
+                            `Not currently in an active CWL — last season **${group.season}** (${group.state}).`,
+                        );
+                    } else {
+                        await interaction.editReply("Not currently in Clan War League.");
+                    }
                 }
                 break;
             }
