@@ -7,8 +7,7 @@ import { Locations } from "./components/locations.js";
 import { Players } from "./components/players.js";
 
 export class CoC {
-    constructor() {
-    }
+    constructor() {}
 
     clans(clanTag) {
         return new Clans(clanTag);

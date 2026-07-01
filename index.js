@@ -1,46 +1,65 @@
-import { Client, Intents } from "discord.js";
+import { Client, GatewayIntentBits, MessageFlags } from "discord.js";
 import dotenv from "dotenv";
 
-import { CoC } from "./api/CoC.js";
-
-// Import local files
+import { loadConfig } from "./src/config.js";
+import { createCocClient } from "./src/coc/http.js";
+import { createClanService } from "./src/coc/clan.js";
+import { clanInfoEmbed } from "./src/discord/embeds.js";
 
 dotenv.config();
 
-const discord = new Client({ intents: [Intents.FLAGS.GUILDS] });
+// Fail fast on bad config, before opening any connection.
+let config;
+try {
+    config = loadConfig();
+} catch (err) {
+    console.error(`Configuration error: ${err.message}`);
+    process.exit(1);
+}
 
-const clanTag = process.env["COC_CLAN_TAG"];
-const guild_id  = process.env["DISCORD_GUILD_ID"];
+const coc = createCocClient({ token: config.coc.token });
+const clanService = createClanService(coc, config.coc.clanTag);
+const discord = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-const coc  = new CoC();
-const clan = coc.clans(clanTag);
-
-discord.on("ready", async () => {
-    console.log(`Logged in as ${discord.user.tag} for guild ${guild_id}!`);
+discord.once("clientReady", () => {
+    console.log(`Logged in as ${discord.user.tag} for guild ${config.discord.guildId}`);
 });
 
 discord.on("interactionCreate", async (interaction) => {
-    if (!interaction.isCommand()) return;
+    if (!interaction.isChatInputCommand()) return;
 
-    switch (interaction.commandName) {
-        case "ping":
-            console.log("Info: responding to ping");
-            await interaction.reply("Pong!");
-            break;
-        case "clan_info":
-            console.log("Info: responding to clan_info");
-            clan.info.then(async (res) => {
-                    const data = res.data;
-                    const info = "\n**Name:\t**" + `${data["name"]} ` + `(\`${data["tag"]}\`)` +
-                                 "\n**Description:\t**" + data["description"] +
-                                 "\n**Members:\t**" + `\`${data["members"]}\`` +
-                                 "\n**Clan Level:\t**" + `\`${data["clanLevel"]}\`` +
-                                 "\n**Location:\t**" + data["location"]["name"] + "\n";
-                    await interaction.reply(info);
-                },
-            );
-            break;
+    try {
+        switch (interaction.commandName) {
+            case "ping":
+                await interaction.reply({ content: "Pong!", flags: MessageFlags.Ephemeral });
+                break;
+
+            case "clan_info": {
+                // Ephemeral: only the invoker sees it — no channel noise.
+                await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+                const clan = await clanService.getInfo();
+                await interaction.editReply({ embeds: [clanInfoEmbed(clan)] });
+                break;
+            }
+        }
+    } catch (err) {
+        console.error(
+            `Command '${interaction.commandName}' failed:`,
+            err instanceof Error ? err.message : err,
+        );
+        const message = {
+            content: "Something went wrong fetching that — please try again shortly.",
+        };
+        if (interaction.deferred || interaction.replied) {
+            await interaction.editReply(message).catch(() => {});
+        } else {
+            await interaction.reply({ ...message, flags: MessageFlags.Ephemeral }).catch(() => {});
+        }
     }
 });
 
-discord.login(process.env["DISCORD_TOKEN"]);
+process.on("unhandledRejection", (reason) => {
+    console.error("Unhandled promise rejection:", reason);
+});
+
+discord.login(config.discord.token);

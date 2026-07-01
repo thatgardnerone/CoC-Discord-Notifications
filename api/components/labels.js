@@ -1,3 +1,3 @@
 export class Labels {
-    constructor() { }
+    constructor() {}
 }

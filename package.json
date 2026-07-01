@@ -1,19 +1,40 @@
 {
-  "dependencies": {
-    "@discordjs/rest": "^0.4.1",
-    "axios": "1.13.0",
-    "discord-api-types": "^0.32.1",
-    "discord.js": "^13.6.0",
-    "dotenv": "^16.0.0"
-  },
-  "name": "coc_discord_notifications",
-  "version": "1.0.0",
-  "description": "Clash of Clans Discord Notifications",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "author": "",
-  "license": "ISC",
-  "type": "module"
+    "dependencies": {
+        "axios": "1.13.0",
+        "better-sqlite3": "^12.11.1",
+        "discord.js": "^14.26.4",
+        "dotenv": "^16.0.0"
+    },
+    "name": "coc_discord_notifications",
+    "version": "1.0.0",
+    "description": "Clash of Clans Discord Notifications",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "typecheck": "tsc --noEmit",
+        "ci": "npm run format:check && npm run lint && npm run typecheck && npm run test"
+    },
+    "author": "",
+    "license": "ISC",
+    "type": "module",
+    "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "@types/better-sqlite3": "^7.6.13",
+        "@types/node": "^26.0.1",
+        "eslint": "^10.6.0",
+        "eslint-config-prettier": "^10.1.8",
+        "globals": "^17.7.0",
+        "prettier": "^3.9.4",
+        "typescript": "^6.0.3",
+        "vitest": "^4.1.9"
+    },
+    "engines": {
+        "node": ">=22"
+    }
 }

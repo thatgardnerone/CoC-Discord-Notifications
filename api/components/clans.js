@@ -2,7 +2,6 @@
 import { client } from "../client.js";
 
 export class Clans {
-
     constructor(clanTag) {
         this.clanTag = clanTag.replace("#", "%23");
     }
@@ -57,5 +56,4 @@ export class Clans {
     get warLog() {
         return client.get("clans/" + this.clanTag + "/warlog");
     }
-
 }
