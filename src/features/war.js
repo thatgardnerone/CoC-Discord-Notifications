@@ -100,6 +100,8 @@ function collectAttacks(war) {
  * @returns {MissedAttacker[]}
  */
 export function computeMissedAttacks(war) {
+    // Default assumes a regular war (2). normaliseWar passes the real value
+    // through, so CWL (1) is respected whenever the API provides it.
     const of = war.attacksPerMember ?? 2;
     return war.clan.members
         .map((member) => ({ tag: member.tag, name: member.name, used: member.attacks.length, of }))

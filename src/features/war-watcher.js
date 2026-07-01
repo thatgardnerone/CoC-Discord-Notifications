@@ -44,6 +44,21 @@ export function createWarWatcher({ warService, store, notifier, logger = console
             // notification rather than re-posting it (and every later transition)
             // on the next poll. The finally is belt-and-suspenders for that invariant.
             try {
+                // Live attack log first. Only diff within a war we were already
+                // watching (so the first inWar poll never posts a burst), but
+                // include the closing poll (inWar -> warEnded) so the final attack
+                // rush isn't lost. warEnded still carries members/attacks.
+                if (
+                    previous?.state === "inWar" &&
+                    (current.state === "inWar" || current.state === "warEnded")
+                ) {
+                    const attacks = detectNewAttacks(previous, current);
+                    if (attacks.length > 0) {
+                        await notifier.send("warLog", { embeds: [attackLogEmbed(attacks)] });
+                        logger.info(`war attacks posted: ${attacks.length}`);
+                    }
+                }
+
                 for (const event of detectWarEvents(previous, current)) {
                     const sent = await notifier.send("warLog", { embeds: [embedFor(event)] });
                     logger.info(`war event ${sent ? "posted" : "dropped"}: ${event.type}`);
@@ -54,16 +69,6 @@ export function createWarWatcher({ warService, store, notifier, logger = console
                         await notifier.send("warLog", {
                             embeds: [missedAttackEmbed(event.war, missed)],
                         });
-                    }
-                }
-
-                // Live attack log — only within an ongoing war we were already
-                // watching (otherwise the first inWar poll would post a burst).
-                if (previous?.state === "inWar" && current.state === "inWar") {
-                    const attacks = detectNewAttacks(previous, current);
-                    if (attacks.length > 0) {
-                        await notifier.send("warLog", { embeds: [attackLogEmbed(attacks)] });
-                        logger.info(`war attacks posted: ${attacks.length}`);
                     }
                 }
             } finally {

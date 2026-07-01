@@ -100,6 +100,10 @@ describe("war embeds", () => {
         expect(data.description).toContain("3⭐");
     });
 
+    it("attackLogEmbed does not throw on an empty list (no empty setDescription)", () => {
+        expect(() => attackLogEmbed([]).toJSON()).not.toThrow();
+    });
+
     it("missedAttackEmbed lists missers, or celebrates when none", () => {
         const missed = missedAttackEmbed(activeWar, [
             { tag: "#B", name: "Bob", used: 1, of: 2 },

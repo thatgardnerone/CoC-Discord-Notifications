@@ -69,10 +69,12 @@ export function attackLogEmbed(attacks) {
         const flag = a.side === "clan" ? "🟢" : "🔴";
         return `${flag} **${a.attackerName}** — ${a.stars}⭐ (${a.destructionPercentage}%)`;
     });
+    // Guard: setDescription("") throws in discord.js v14.
+    const description = lines.join("\n").slice(0, 4096) || "No new attacks.";
     return new EmbedBuilder()
         .setColor(0xe67e22)
         .setTitle("⚔️ War attacks")
-        .setDescription(lines.join("\n").slice(0, 4096));
+        .setDescription(description);
 }
 
 /**

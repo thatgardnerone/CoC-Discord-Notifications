@@ -4,16 +4,16 @@ import { HttpError } from "../src/coc/http.js";
 
 const silent = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
 
-/** @param {string} tag @param {string} name @param {number} n Number of attacks used */
-const attacker = (tag, name, n) => ({
+/** @param {string} tag @param {string} name @param {number[]} orders Global war order of each attack */
+const attacker = (tag, name, orders) => ({
     tag,
     name,
     mapPosition: 1,
     townhallLevel: 15,
-    attacks: Array.from({ length: n }, (_, i) => ({
-        order: i + 1,
+    attacks: orders.map((order) => ({
+        order,
         attackerTag: tag,
-        defenderTag: `#d${i}`,
+        defenderTag: `#d${order}`,
         stars: 3,
         destructionPercentage: 100,
     })),
@@ -84,8 +84,12 @@ describe("war watcher", () => {
     });
 
     it("posts the missed-attack report alongside the war-end embed", async () => {
-        const current = snap("warEnded", [attacker("#A", "Ann", 2), attacker("#B", "Bob", 1)]);
-        const { notifier, watcher } = harness({ current, previous: snap("inWar") });
+        // Same attacks in both snapshots -> no new attacks, just end + missed.
+        const roster = [attacker("#A", "Ann", [1, 2]), attacker("#B", "Bob", [3])];
+        const { notifier, watcher } = harness({
+            current: snap("warEnded", roster),
+            previous: snap("inWar", roster),
+        });
 
         await watcher.poll();
 
@@ -95,8 +99,8 @@ describe("war watcher", () => {
     });
 
     it("posts a live attack-log for new attacks within an ongoing war", async () => {
-        const previous = snap("inWar", [attacker("#A", "Ann", 1)]);
-        const current = snap("inWar", [attacker("#A", "Ann", 2)]);
+        const previous = snap("inWar", [attacker("#A", "Ann", [1])]);
+        const current = snap("inWar", [attacker("#A", "Ann", [1, 2])]);
         const { notifier, watcher } = harness({ current, previous });
 
         await watcher.poll();
@@ -108,8 +112,23 @@ describe("war watcher", () => {
         );
     });
 
+    it("posts the final attacks on the closing (inWar -> warEnded) poll, then end + missed", async () => {
+        const previous = snap("inWar", [attacker("#A", "Ann", [1]), attacker("#B", "Bob", [2])]);
+        // Ann lands one more attack (order 3) right at war end; Bob still missed one.
+        const current = snap("warEnded", [
+            attacker("#A", "Ann", [1, 3]),
+            attacker("#B", "Bob", [2]),
+        ]);
+        const { notifier, watcher } = harness({ current, previous });
+
+        await watcher.poll();
+
+        // attack-log (final attack) + war-end embed + missed report = 3 sends
+        expect(notifier.send).toHaveBeenCalledTimes(3);
+    });
+
     it("does not post an attack burst on the first inWar poll (prep -> inWar)", async () => {
-        const current = snap("inWar", [attacker("#A", "Ann", 2)]);
+        const current = snap("inWar", [attacker("#A", "Ann", [1, 2])]);
         const { notifier, watcher } = harness({ current, previous: snap("preparation") });
 
         await watcher.poll();
