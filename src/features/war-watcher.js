@@ -30,6 +30,8 @@ import {
  * @param {() => number} [deps.now] Epoch-ms clock (injectable for tests).
  * @param {{ info: (msg: string, fields?: object) => void, warn: (msg: string, fields?: object) => void }} [deps.logger]
  * @param {string} [deps.key] Snapshot key (default "war").
+ * @param {string} [deps.logChannel] Channel key for war-log posts (default "warLog").
+ * @param {string} [deps.remindChannel] Channel key for reminders (default "warReminders").
  */
 export function createWarWatcher({
     warService,
@@ -40,6 +42,8 @@ export function createWarWatcher({
     now = () => Date.now(),
     logger = console,
     key = "war",
+    logChannel = "warLog",
+    remindChannel = "warReminders",
 }) {
     const remindKey = `${key}:reminded`;
     return {
@@ -75,19 +79,19 @@ export function createWarWatcher({
                 ) {
                     const attacks = detectNewAttacks(previous, current);
                     if (attacks.length > 0) {
-                        await notifier.send("warLog", { embeds: [attackLogEmbed(attacks)] });
+                        await notifier.send(logChannel, { embeds: [attackLogEmbed(attacks)] });
                         logger.info(`war attacks posted: ${attacks.length}`);
                     }
                 }
 
                 for (const event of detectWarEvents(previous, current)) {
-                    const sent = await notifier.send("warLog", { embeds: [embedFor(event)] });
+                    const sent = await notifier.send(logChannel, { embeds: [embedFor(event)] });
                     logger.info(`war event ${sent ? "posted" : "dropped"}: ${event.type}`);
 
                     // At war end, also post who didn't use all their attacks.
                     if (event.type === "warEnd") {
                         const missed = computeMissedAttacks(event.war);
-                        await notifier.send("warLog", {
+                        await notifier.send(logChannel, {
                             embeds: [missedAttackEmbed(event.war, missed)],
                         });
                     }
@@ -128,7 +132,7 @@ export function createWarWatcher({
                 remaining >= 3600
                     ? `${Math.round(remaining / 3600)}h`
                     : `${Math.max(1, Math.round(remaining / 60))}m`;
-            await notifier.send("warReminders", {
+            await notifier.send(remindChannel, {
                 content: attackReminderMessage(resolved, timeLeft),
                 allowedMentions: { users: resolved.map((r) => r.userId).filter(Boolean) },
             });

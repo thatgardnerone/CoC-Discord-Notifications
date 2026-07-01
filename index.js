@@ -69,6 +69,21 @@ const warWatcher = createWarWatcher({
     remindWindowSeconds: config.war.remindHoursBefore * 3600,
     logger,
 });
+// CWL reuses the war watcher: a CWL round war has the same shape, so we feed it
+// our current league-round war and route its posts to #cwl.
+const cwlWatcher = createWarWatcher({
+    warService: {
+        getCurrentWar: async () =>
+            (await cwlService.findCurrentWar())?.war ?? { state: "notInWar" },
+    },
+    store,
+    notifier,
+    linkStore,
+    remindWindowSeconds: config.war.remindHoursBefore * 3600,
+    logger,
+    key: "cwl",
+    logChannel: "cwl",
+});
 const playerService = createPlayerService(coc);
 const linker = createLinker({ playerService, linkStore });
 const scheduler = createScheduler({
@@ -122,6 +137,7 @@ discord.once("clientReady", () => {
     started = true;
     // Start polling once connected, so the notifier can resolve channels.
     scheduler.every(config.poll.warSeconds, () => warWatcher.poll());
+    scheduler.every(config.poll.warSeconds, () => cwlWatcher.poll());
     scheduler.every(
         900,
         () => logger.info("heartbeat", { uptimeSec: Math.round(process.uptime()) }),

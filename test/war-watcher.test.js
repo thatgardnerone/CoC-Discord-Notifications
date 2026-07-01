@@ -155,6 +155,31 @@ describe("war watcher", () => {
         expect(notifier.send).toHaveBeenCalledTimes(1);
     });
 
+    it("routes posts to a custom log channel when configured (CWL reuse)", async () => {
+        const warService = { getCurrentWar: vi.fn().mockResolvedValue(snap("inWar")) };
+        const store = {
+            getSnapshot: vi.fn().mockReturnValue(snap("preparation")),
+            setSnapshot: vi.fn(),
+            close: vi.fn(),
+        };
+        const notifier = { send: vi.fn().mockResolvedValue(true) };
+        const watcher = createWarWatcher({
+            warService,
+            store,
+            notifier,
+            logger: silent,
+            key: "cwl",
+            logChannel: "cwl",
+        });
+
+        await watcher.poll();
+
+        expect(notifier.send).toHaveBeenCalledWith(
+            "cwl",
+            expect.objectContaining({ embeds: expect.any(Array) }),
+        );
+    });
+
     describe("attack reminders", () => {
         const linked = {
             getByPlayer: vi.fn((tag) => (tag === "#A" ? { discordId: "disc-A" } : null)),
