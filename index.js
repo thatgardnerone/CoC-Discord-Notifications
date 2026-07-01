@@ -1,4 +1,4 @@
-import { Client, Intents } from "discord.js";
+import { Client, GatewayIntentBits } from "discord.js";
 import dotenv from "dotenv";
 
 import { CoC } from "./api/CoC.js";
@@ -7,7 +7,7 @@ import { CoC } from "./api/CoC.js";
 
 dotenv.config();
 
-const discord = new Client({ intents: [Intents.FLAGS.GUILDS] });
+const discord = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 const clanTag = process.env["COC_CLAN_TAG"];
 const guild_id = process.env["DISCORD_GUILD_ID"];
@@ -20,7 +20,7 @@ discord.on("ready", async () => {
 });
 
 discord.on("interactionCreate", async (interaction) => {
-    if (!interaction.isCommand()) return;
+    if (!interaction.isChatInputCommand()) return;
 
     switch (interaction.commandName) {
         case "ping":

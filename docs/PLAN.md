@@ -57,7 +57,7 @@ WantedBy=multi-user.target
 ## 2. Target architecture
 
 ```
-Discord (discord.js v13)         CoC API (poll-only, IP-locked token)
+Discord (discord.js v14)         CoC API (poll-only, IP-locked token)
         ▲                                   ▲
         │ embeds / pings                    │ GET on interval
         │                                   │

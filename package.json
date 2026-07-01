@@ -1,9 +1,7 @@
 {
     "dependencies": {
-        "@discordjs/rest": "^0.4.1",
         "axios": "1.13.0",
-        "discord-api-types": "^0.32.1",
-        "discord.js": "^13.6.0",
+        "discord.js": "^14.26.4",
         "dotenv": "^16.0.0"
     },
     "name": "coc_discord_notifications",
