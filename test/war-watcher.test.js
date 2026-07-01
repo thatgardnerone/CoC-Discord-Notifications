@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { createWarWatcher } from "../src/features/war-watcher.js";
+import { HttpError } from "../src/coc/http.js";
 
 const silent = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
 
@@ -61,5 +62,27 @@ describe("war watcher", () => {
 
         expect(notifier.send).not.toHaveBeenCalled();
         expect(store.setSnapshot).toHaveBeenCalledWith("war", current);
+    });
+
+    it("degrades gracefully when the war log is private (403): warns, no throw, no write", async () => {
+        const warService = { getCurrentWar: vi.fn().mockRejectedValue(new HttpError(403)) };
+        const store = { getSnapshot: vi.fn(), setSnapshot: vi.fn(), close: vi.fn() };
+        const notifier = { send: vi.fn() };
+        const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+        const watcher = createWarWatcher({ warService, store, notifier, logger });
+
+        await expect(watcher.poll()).resolves.toBeUndefined();
+        expect(logger.warn).toHaveBeenCalled();
+        expect(notifier.send).not.toHaveBeenCalled();
+        expect(store.setSnapshot).not.toHaveBeenCalled();
+    });
+
+    it("re-throws non-403 errors for the scheduler to handle", async () => {
+        const warService = { getCurrentWar: vi.fn().mockRejectedValue(new HttpError(500)) };
+        const store = { getSnapshot: vi.fn(), setSnapshot: vi.fn(), close: vi.fn() };
+        const notifier = { send: vi.fn() };
+        const watcher = createWarWatcher({ warService, store, notifier, logger: silent });
+
+        await expect(watcher.poll()).rejects.toBeInstanceOf(HttpError);
     });
 });

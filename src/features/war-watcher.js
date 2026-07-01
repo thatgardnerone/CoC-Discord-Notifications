@@ -1,4 +1,5 @@
 import { detectWarEvents } from "./war.js";
+import { HttpError } from "../coc/http.js";
 import { warPreparationEmbed, warStartEmbed, warEndEmbed } from "../discord/embeds.js";
 
 /**
@@ -10,13 +11,25 @@ import { warPreparationEmbed, warStartEmbed, warEndEmbed } from "../discord/embe
  * @param {{ getCurrentWar: () => Promise<import("./war.js").WarSnapshot> }} deps.warService
  * @param {{ getSnapshot: (key: string) => any, setSnapshot: (key: string, value: unknown) => void }} deps.store
  * @param {{ send: (channelKey: string, payload: object) => Promise<boolean> }} deps.notifier
- * @param {{ info: (msg: string, fields?: object) => void }} [deps.logger]
+ * @param {{ info: (msg: string, fields?: object) => void, warn: (msg: string, fields?: object) => void }} [deps.logger]
  * @param {string} [deps.key] Snapshot key (default "war").
  */
 export function createWarWatcher({ warService, store, notifier, logger = console, key = "war" }) {
     return {
         async poll() {
-            const current = await warService.getCurrentWar();
+            let current;
+            try {
+                current = await warService.getCurrentWar();
+            } catch (err) {
+                if (err instanceof HttpError && err.status === 403) {
+                    // Clan war log is private — expected until the leader makes it public.
+                    logger.warn(
+                        "war log is private; skipping war poll (set war log to Public in-game)",
+                    );
+                    return;
+                }
+                throw err;
+            }
             const previous = store.getSnapshot(key);
 
             for (const event of detectWarEvents(previous, current)) {
