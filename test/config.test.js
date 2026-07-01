@@ -90,6 +90,13 @@ describe("loadConfig", () => {
         ).toBe("/srv/coc-bot/shared/data/coc.db");
     });
 
+    it("reads clan-role → Discord-role mappings, defaulting unset to null", () => {
+        const cfg = loadConfig({ ...validEnv, ROLE_COLEADER: "703994260688601120" });
+        expect(cfg.roles.coLeader).toBe("703994260688601120");
+        expect(cfg.roles.member).toBeNull();
+        expect(() => loadConfig({ ...validEnv, ROLE_LEADER: "notanid" })).toThrowError(ConfigError);
+    });
+
     it("returns a deeply immutable config", () => {
         const cfg = loadConfig(validEnv);
         expect(() => {
