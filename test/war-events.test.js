@@ -9,8 +9,8 @@ import { detectWarEvents, computeWarResult } from "../src/features/war.js";
 const war = (state, { cs = 0, os = 0, cd = 0, od = 0 } = {}) => ({
     state,
     teamSize: 15,
-    clan: { name: "Us", tag: "#U", stars: cs, destruction: cd },
-    opponent: { name: "Foes", tag: "#O", stars: os, destruction: od },
+    clan: { name: "Us", tag: "#U", stars: cs, destruction: cd, members: [] },
+    opponent: { name: "Foes", tag: "#O", stars: os, destruction: od, members: [] },
 });
 
 const prep = war("preparation");

@@ -27,20 +27,40 @@ function normaliseWar(data) {
     return {
         state: data.state,
         teamSize: data.teamSize,
+        attacksPerMember: data.attacksPerMember,
         startTime: data.startTime,
         endTime: data.endTime,
-        clan: {
-            name: data.clan.name,
-            tag: data.clan.tag,
-            stars: data.clan.stars,
-            destruction: data.clan.destructionPercentage,
-            attacks: data.clan.attacks,
-        },
-        opponent: {
-            name: data.opponent.name,
-            tag: data.opponent.tag,
-            stars: data.opponent.stars,
-            destruction: data.opponent.destructionPercentage,
-        },
+        clan: normaliseSide(data.clan),
+        opponent: normaliseSide(data.opponent),
+    };
+}
+
+/**
+ * @param {any} side
+ * @returns {import("../features/war.js").WarSide}
+ */
+function normaliseSide(side) {
+    return {
+        name: side.name,
+        tag: side.tag,
+        stars: side.stars,
+        destruction: side.destructionPercentage,
+        members: (side.members ?? []).map(
+            /** @param {any} m */ (m) => ({
+                tag: m.tag,
+                name: m.name,
+                mapPosition: m.mapPosition,
+                townhallLevel: m.townhallLevel,
+                attacks: (m.attacks ?? []).map(
+                    /** @param {any} a */ (a) => ({
+                        order: a.order,
+                        attackerTag: a.attackerTag,
+                        defenderTag: a.defenderTag,
+                        stars: a.stars,
+                        destructionPercentage: a.destructionPercentage,
+                    }),
+                ),
+            }),
+        ),
     };
 }

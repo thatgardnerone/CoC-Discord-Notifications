@@ -4,6 +4,8 @@ import {
     warPreparationEmbed,
     warStartEmbed,
     warEndEmbed,
+    attackLogEmbed,
+    missedAttackEmbed,
 } from "../src/discord/embeds.js";
 
 /** @type {import("../src/features/war.js").ActiveWar} */
@@ -12,8 +14,8 @@ const activeWar = {
     teamSize: 15,
     startTime: "20260701T120000.000Z",
     endTime: "20260702T120000.000Z",
-    clan: { name: "Us", tag: "#U", stars: 20, destruction: 88.5 },
-    opponent: { name: "Foes", tag: "#O", stars: 15, destruction: 70.1 },
+    clan: { name: "Us", tag: "#U", stars: 20, destruction: 88.5, members: [] },
+    opponent: { name: "Foes", tag: "#O", stars: 15, destruction: 70.1, members: [] },
 };
 
 const clan = {
@@ -70,5 +72,42 @@ describe("war embeds", () => {
         expect(warEndEmbed(activeWar, "tie").toJSON().title).toContain("Draw");
         const data = warEndEmbed(activeWar, "win").toJSON();
         expect((data.fields ?? []).find((f) => f.name === "Stars")?.value).toBe("20 – 15");
+    });
+
+    it("attackLogEmbed lists attacks with side flags", () => {
+        const data = attackLogEmbed([
+            {
+                order: 1,
+                side: "clan",
+                attackerTag: "#A",
+                attackerName: "Ann",
+                defenderTag: "#x",
+                stars: 3,
+                destructionPercentage: 100,
+            },
+            {
+                order: 2,
+                side: "opponent",
+                attackerTag: "#B",
+                attackerName: "Bob",
+                defenderTag: "#y",
+                stars: 1,
+                destructionPercentage: 40,
+            },
+        ]).toJSON();
+        expect(data.description).toContain("🟢 **Ann**");
+        expect(data.description).toContain("🔴 **Bob**");
+        expect(data.description).toContain("3⭐");
+    });
+
+    it("missedAttackEmbed lists missers, or celebrates when none", () => {
+        const missed = missedAttackEmbed(activeWar, [
+            { tag: "#B", name: "Bob", used: 1, of: 2 },
+        ]).toJSON();
+        expect(missed.description).toContain("Bob");
+        expect(missed.description).toContain("1/2");
+
+        const clean = missedAttackEmbed(activeWar, []).toJSON();
+        expect(clean.description).toContain("Everyone used all their attacks");
     });
 });

@@ -4,14 +4,33 @@ import { HttpError } from "../src/coc/http.js";
 
 const silent = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
 
-/** @param {"preparation"|"inWar"|"warEnded"} state */
-const snap = (state) => ({
+/** @param {string} tag @param {string} name @param {number} n Number of attacks used */
+const attacker = (tag, name, n) => ({
+    tag,
+    name,
+    mapPosition: 1,
+    townhallLevel: 15,
+    attacks: Array.from({ length: n }, (_, i) => ({
+        order: i + 1,
+        attackerTag: tag,
+        defenderTag: `#d${i}`,
+        stars: 3,
+        destructionPercentage: 100,
+    })),
+});
+
+/**
+ * @param {"preparation"|"inWar"|"warEnded"} state
+ * @param {any[]} [clanMembers]
+ */
+const snap = (state, clanMembers = []) => ({
     state,
     teamSize: 15,
+    attacksPerMember: 2,
     startTime: "20260701T120000.000Z",
     endTime: "20260702T120000.000Z",
-    clan: { name: "Us", tag: "#U", stars: 10, destruction: 90 },
-    opponent: { name: "Foes", tag: "#O", stars: 5, destruction: 70 },
+    clan: { name: "Us", tag: "#U", stars: 10, destruction: 90, members: clanMembers },
+    opponent: { name: "Foes", tag: "#O", stars: 5, destruction: 70, members: [] },
 });
 
 /**
@@ -62,6 +81,41 @@ describe("war watcher", () => {
 
         expect(notifier.send).not.toHaveBeenCalled();
         expect(store.setSnapshot).toHaveBeenCalledWith("war", current);
+    });
+
+    it("posts the missed-attack report alongside the war-end embed", async () => {
+        const current = snap("warEnded", [attacker("#A", "Ann", 2), attacker("#B", "Bob", 1)]);
+        const { notifier, watcher } = harness({ current, previous: snap("inWar") });
+
+        await watcher.poll();
+
+        // war-end embed + missed-attack report = 2 sends, both to warLog
+        expect(notifier.send).toHaveBeenCalledTimes(2);
+        expect(notifier.send.mock.calls.every(([ch]) => ch === "warLog")).toBe(true);
+    });
+
+    it("posts a live attack-log for new attacks within an ongoing war", async () => {
+        const previous = snap("inWar", [attacker("#A", "Ann", 1)]);
+        const current = snap("inWar", [attacker("#A", "Ann", 2)]);
+        const { notifier, watcher } = harness({ current, previous });
+
+        await watcher.poll();
+
+        expect(notifier.send).toHaveBeenCalledTimes(1);
+        expect(notifier.send).toHaveBeenCalledWith(
+            "warLog",
+            expect.objectContaining({ embeds: expect.any(Array) }),
+        );
+    });
+
+    it("does not post an attack burst on the first inWar poll (prep -> inWar)", async () => {
+        const current = snap("inWar", [attacker("#A", "Ann", 2)]);
+        const { notifier, watcher } = harness({ current, previous: snap("preparation") });
+
+        await watcher.poll();
+
+        // only the war-start embed — not the pre-existing attacks
+        expect(notifier.send).toHaveBeenCalledTimes(1);
     });
 
     it("degrades gracefully when the war log is private (403): warns, no throw, no write", async () => {

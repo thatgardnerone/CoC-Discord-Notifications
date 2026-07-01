@@ -1,6 +1,12 @@
-import { detectWarEvents } from "./war.js";
+import { detectWarEvents, detectNewAttacks, computeMissedAttacks } from "./war.js";
 import { HttpError } from "../coc/http.js";
-import { warPreparationEmbed, warStartEmbed, warEndEmbed } from "../discord/embeds.js";
+import {
+    warPreparationEmbed,
+    warStartEmbed,
+    warEndEmbed,
+    attackLogEmbed,
+    missedAttackEmbed,
+} from "../discord/embeds.js";
 
 /**
  * One poll cycle of the war feature: fetch the current war, diff it against the
@@ -41,6 +47,24 @@ export function createWarWatcher({ warService, store, notifier, logger = console
                 for (const event of detectWarEvents(previous, current)) {
                     const sent = await notifier.send("warLog", { embeds: [embedFor(event)] });
                     logger.info(`war event ${sent ? "posted" : "dropped"}: ${event.type}`);
+
+                    // At war end, also post who didn't use all their attacks.
+                    if (event.type === "warEnd") {
+                        const missed = computeMissedAttacks(event.war);
+                        await notifier.send("warLog", {
+                            embeds: [missedAttackEmbed(event.war, missed)],
+                        });
+                    }
+                }
+
+                // Live attack log — only within an ongoing war we were already
+                // watching (otherwise the first inWar poll would post a burst).
+                if (previous?.state === "inWar" && current.state === "inWar") {
+                    const attacks = detectNewAttacks(previous, current);
+                    if (attacks.length > 0) {
+                        await notifier.send("warLog", { embeds: [attackLogEmbed(attacks)] });
+                        logger.info(`war attacks posted: ${attacks.length}`);
+                    }
                 }
             } finally {
                 store.setSnapshot(key, current);
