@@ -2,11 +2,11 @@ export const CommandManager = {
     get commands() {
         return [
             {
-                name:        "ping",
+                name: "ping",
                 description: "Ping the bot to see if it's alive.",
             },
             {
-                name:        "clan_info",
+                name: "clan_info",
                 description: "Summarise this clan's info",
             },
         ];

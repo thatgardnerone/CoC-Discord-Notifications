@@ -9,8 +9,8 @@
 The official API (`https://api.clashofclans.com/v1`) is **poll-only and IP-locked**:
 
 - **No webhooks / no push / no event stream.** Every "notification" (war started, member
-  left, attack made) is produced by *polling on an interval and diffing snapshots against
-  stored state*. → We need a datastore and a snapshot/diff engine, not just a stateless bot.
+  left, attack made) is produced by _polling on an interval and diffing snapshots against
+  stored state_. → We need a datastore and a snapshot/diff engine, not just a stateless bot.
 - **Tokens are bound to a fixed IP** (~10 req/s per token). A key only works from the IP it
   was created for. On dynamic-IP hosts you must log into the developer portal at runtime to
   mint per-IP keys (the "coc.py / ClashKing" email+password pattern).
@@ -82,21 +82,21 @@ Current state: only `Clans` is wired; other components are stubs; commands are `
 
 ## 3. Capability taxonomy (API → data → Discord feature)
 
-| API endpoint | Key data | Discord feature | Diff? |
-|---|---|---|---|
-| `GET /clans/{tag}` | level, points, war streak, league, members | `/clan_info`, clan achievement alerts | for alerts |
-| `GET /clans/{tag}/members` | role, TH, trophies, donations, league | donation leaderboards, join/leave, role/name/TH changes | ✅ |
-| `GET /clans/{tag}/warlog` | historical results, stars, destruction | war history, win-rate stats | no |
-| `GET /clans/{tag}/currentwar` | state, per-member attacks, opponent | war start/end, live attack log, attack reminders, missed-attack report | ✅ |
-| `GET /clans/{tag}/currentwar/leaguegroup` | CWL group, round war tags | CWL roster, round schedule, TH distribution | poll |
-| `GET /clanwarleagues/wars/{warTag}` | per-round rosters/attacks | CWL attack log, missed-attacks, standings | ✅ |
-| `GET /clans/{tag}/capitalraidseasons` | per-member raid attacks/loot, districts | raid-weekend summary, missed-raid tracker, contribution board | ✅ |
-| `GET /players/{tag}` | heroes/troops/spells, trophies, achievements | `/player`, linking, rushed check, Clan Games (achievement diff) | for CG |
-| `POST /players/{tag}/verifytoken` | validates in-game token | verified linking → auto Discord roles | on demand |
-| `GET /leagues` `/warleagues` `/capitalleagues` `/builderbaseleagues` | league names/badges | embed enrichment | no |
-| `GET /locations/{id}/rankings/*` | clan/player/builder/capital ranks | leaderboard flex, rank-change alerts | for alerts |
-| `GET /goldpass/seasons/current` | season timing | season countdown | no |
-| `GET /labels/{clans\|players}` | label metadata | profile badges | no |
+| API endpoint                                                         | Key data                                     | Discord feature                                                        | Diff?      |
+| -------------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------- | ---------- |
+| `GET /clans/{tag}`                                                   | level, points, war streak, league, members   | `/clan_info`, clan achievement alerts                                  | for alerts |
+| `GET /clans/{tag}/members`                                           | role, TH, trophies, donations, league        | donation leaderboards, join/leave, role/name/TH changes                | ✅         |
+| `GET /clans/{tag}/warlog`                                            | historical results, stars, destruction       | war history, win-rate stats                                            | no         |
+| `GET /clans/{tag}/currentwar`                                        | state, per-member attacks, opponent          | war start/end, live attack log, attack reminders, missed-attack report | ✅         |
+| `GET /clans/{tag}/currentwar/leaguegroup`                            | CWL group, round war tags                    | CWL roster, round schedule, TH distribution                            | poll       |
+| `GET /clanwarleagues/wars/{warTag}`                                  | per-round rosters/attacks                    | CWL attack log, missed-attacks, standings                              | ✅         |
+| `GET /clans/{tag}/capitalraidseasons`                                | per-member raid attacks/loot, districts      | raid-weekend summary, missed-raid tracker, contribution board          | ✅         |
+| `GET /players/{tag}`                                                 | heroes/troops/spells, trophies, achievements | `/player`, linking, rushed check, Clan Games (achievement diff)        | for CG     |
+| `POST /players/{tag}/verifytoken`                                    | validates in-game token                      | verified linking → auto Discord roles                                  | on demand  |
+| `GET /leagues` `/warleagues` `/capitalleagues` `/builderbaseleagues` | league names/badges                          | embed enrichment                                                       | no         |
+| `GET /locations/{id}/rankings/*`                                     | clan/player/builder/capital ranks            | leaderboard flex, rank-change alerts                                   | for alerts |
+| `GET /goldpass/seasons/current`                                      | season timing                                | season countdown                                                       | no         |
+| `GET /labels/{clans\|players}`                                       | label metadata                               | profile badges                                                         | no         |
 
 ## 4. MoSCoW backlog
 
@@ -114,19 +114,19 @@ legend per-attack feed, exact Clan Games points, chat/relations data.
 **Per-channel routing** (so people can mute noise without losing high-signal reminders). Each
 notification type maps to a configurable channel (see #53):
 
-| Channel | Content | Volume |
-|---|---|---|
-| `#war-reminders` | @-mention pings only | Low / high-signal → keep unmuted |
-| `#war-log` | war start/end + live attacks | High → opt-in |
-| `#cwl` | CWL roster, rounds, results | Bursty (monthly) |
-| `#capital` | raid-weekend summaries, missed-raid | Weekly |
-| `#clan-feed` | join/leave, role/name/TH, donations | Steady log |
-| `#verify` | onboarding/linking | Near-zero |
+| Channel          | Content                             | Volume                           |
+| ---------------- | ----------------------------------- | -------------------------------- |
+| `#war-reminders` | @-mention pings only                | Low / high-signal → keep unmuted |
+| `#war-log`       | war start/end + live attacks        | High → opt-in                    |
+| `#cwl`           | CWL roster, rounds, results         | Bursty (monthly)                 |
+| `#capital`       | raid-weekend summaries, missed-raid | Weekly                           |
+| `#clan-feed`     | join/leave, role/name/TH, donations | Steady log                       |
+| `#verify`        | onboarding/linking                  | Near-zero                        |
 
 **@-mention reminders depend on linking.** To ping a member the bot needs their Discord ID ↔
 player tag (EPIC 6). Until linked, reminders list the in-game name instead.
 
-**Onboarding (not DMs).** Discord bots can't reliably *initiate* DMs, so onboarding is a
+**Onboarding (not DMs).** Discord bots can't reliably _initiate_ DMs, so onboarding is a
 persistent **button in `#verify` → ephemeral modal** (player tag + in-game API token →
 `verifytoken` → auto role) plus a `/link` slash command (ephemeral). See #54.
 
@@ -137,7 +137,7 @@ persistent **button in `#verify` → ephemeral modal** (player tag + in-game API
   Discord OAuth web flow, no HTTP interactions endpoint).
 - **Interactions Endpoint URL: leave blank** — interactions arrive over the gateway (discord.js).
 - **Privileged intents: all OFF** (Presence, Server Members, Message Content). Slash commands
-  + buttons + CoC-API polling need none of them. Client intents stay `[GUILDS]`.
+    - buttons + CoC-API polling need none of them. Client intents stay `[GUILDS]`.
 - **OAuth2 invite** — scopes `bot applications.commands`; permissions bitfield **`268553216`**
   = View Channels, Send Messages, Embed Links, Read Message History, Attach Files, Manage Roles:
   `https://discord.com/api/oauth2/authorize?client_id=972807855897972797&permissions=268553216&scope=bot%20applications.commands`
