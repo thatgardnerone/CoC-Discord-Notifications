@@ -107,3 +107,21 @@ export function computeMissedAttacks(war) {
         .map((member) => ({ tag: member.tag, name: member.name, used: member.attacks.length, of }))
         .filter((member) => member.used < member.of);
 }
+
+/**
+ * Our clan members who still have unused attacks, with how many remain — the
+ * targets for a "use your attacks" reminder while a war is ongoing.
+ *
+ * @param {ActiveWar} war
+ * @returns {{ tag: string, name: string, remaining: number }[]}
+ */
+export function membersWithAttacksLeft(war) {
+    const of = war.attacksPerMember ?? 2;
+    return war.clan.members
+        .map((member) => ({
+            tag: member.tag,
+            name: member.name,
+            remaining: of - member.attacks.length,
+        }))
+        .filter((member) => member.remaining > 0);
+}

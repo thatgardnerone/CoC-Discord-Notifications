@@ -58,8 +58,15 @@ const warService = createWarService(coc, config.coc.clanTag);
 const store = createStore(config.storage.dbPath);
 const discord = new Client({ intents: [GatewayIntentBits.Guilds] });
 const notifier = createNotifier({ client: discord, channels: config.channels, logger });
-const warWatcher = createWarWatcher({ warService, store, notifier, logger });
 const linkStore = createLinkStore(config.storage.dbPath);
+const warWatcher = createWarWatcher({
+    warService,
+    store,
+    notifier,
+    linkStore,
+    remindWindowSeconds: config.war.remindHoursBefore * 3600,
+    logger,
+});
 const playerService = createPlayerService(coc);
 const linker = createLinker({ playerService, linkStore });
 const scheduler = createScheduler({
