@@ -211,3 +211,7 @@ data/
 *.db
 *.db-wal
 *.db-shm
+
+# macOS
+.DS_Store
+**/.DS_Store
