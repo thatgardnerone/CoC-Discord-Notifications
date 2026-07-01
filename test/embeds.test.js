@@ -6,6 +6,7 @@ import {
     warEndEmbed,
     attackLogEmbed,
     missedAttackEmbed,
+    attackReminderMessage,
 } from "../src/discord/embeds.js";
 
 /** @type {import("../src/features/war.js").ActiveWar} */
@@ -102,6 +103,19 @@ describe("war embeds", () => {
 
     it("attackLogEmbed does not throw on an empty list (no empty setDescription)", () => {
         expect(() => attackLogEmbed([]).toJSON()).not.toThrow();
+    });
+
+    it("attackReminderMessage lists due members with mentions and hours left", () => {
+        const msg = attackReminderMessage(
+            [
+                { mention: "<@111>", remaining: 2 },
+                { mention: "**Bob**", remaining: 1 },
+            ],
+            2,
+        );
+        expect(msg).toContain("2h left");
+        expect(msg).toContain("<@111> — 2 attacks left");
+        expect(msg).toContain("**Bob** — 1 attack left");
     });
 
     it("missedAttackEmbed lists missers, or celebrates when none", () => {

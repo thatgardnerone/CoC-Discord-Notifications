@@ -78,6 +78,21 @@ export function attackLogEmbed(attacks) {
 }
 
 /**
+ * Builds the war attack-reminder message. Mentions are pre-resolved by the
+ * caller (linked members → `<@id>`, otherwise their in-game name).
+ *
+ * @param {{ mention: string, remaining: number }[]} due
+ * @param {number} hoursLeft
+ * @returns {string}
+ */
+export function attackReminderMessage(due, hoursLeft) {
+    const lines = due.map(
+        (d) => `${d.mention} — ${d.remaining} attack${d.remaining > 1 ? "s" : ""} left`,
+    );
+    return `⏰ **${hoursLeft}h left** in the war — use your attacks!\n${lines.join("\n")}`;
+}
+
+/**
  * @param {import("../features/war.js").ActiveWar} war
  * @param {import("../features/war.js").MissedAttacker[]} missed
  * @returns {EmbedBuilder}

@@ -11,6 +11,7 @@
  * @property {{ warSeconds: number, membersSeconds: number, capitalSeconds: number }} poll
  * @property {{ dbPath: string }} storage
  * @property {Record<RoleKey, string | null>} roles
+ * @property {{ remindHoursBefore: number }} war
  *
  * @typedef {"warReminders"|"warLog"|"cwl"|"capital"|"clanFeed"|"verify"} ChannelKey
  * @typedef {"leader"|"coLeader"|"elder"|"member"} RoleKey
@@ -177,5 +178,13 @@ export function loadConfig(env = process.env) {
         poll,
         storage: { dbPath: env.COC_DB_PATH?.trim() || "data/coc.db" },
         roles,
+        war: {
+            remindHoursBefore: positiveIntOr(
+                env.REMIND_HOURS_BEFORE,
+                2,
+                "REMIND_HOURS_BEFORE",
+                invalid,
+            ),
+        },
     });
 }

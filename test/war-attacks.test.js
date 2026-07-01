@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { detectNewAttacks, computeMissedAttacks } from "../src/features/war.js";
+import {
+    detectNewAttacks,
+    computeMissedAttacks,
+    membersWithAttacksLeft,
+} from "../src/features/war.js";
 
 /**
  * @param {Array<{order:number,defenderTag:string,stars:number,pct:number}>} attacks
@@ -104,5 +108,27 @@ describe("computeMissedAttacks", () => {
             1,
         );
         expect(computeMissedAttacks(w).map((m) => m.name)).toEqual(["Bob"]);
+    });
+});
+
+describe("membersWithAttacksLeft", () => {
+    it("lists members with unused attacks and how many remain", () => {
+        const w = war(
+            [
+                member("#A", "Ann", [
+                    { order: 1, defenderTag: "#x", stars: 3, pct: 100 },
+                    { order: 2, defenderTag: "#y", stars: 2, pct: 70 },
+                ]),
+                member("#B", "Bob", [{ order: 3, defenderTag: "#z", stars: 1, pct: 30 }]),
+                member("#C", "Cat", []),
+            ],
+            [],
+            2,
+        );
+
+        expect(membersWithAttacksLeft(w)).toEqual([
+            { tag: "#B", name: "Bob", remaining: 1 },
+            { tag: "#C", name: "Cat", remaining: 2 },
+        ]);
     });
 });

@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { createWarWatcher } from "../src/features/war-watcher.js";
 import { HttpError } from "../src/coc/http.js";
+import { cocTimeToUnix } from "../src/coc/time.js";
+
+const END_UNIX = /** @type {number} */ (cocTimeToUnix("20260702T120000.000Z"));
+/** @param {number} hoursLeft */
+const clockAt = (hoursLeft) => () => (END_UNIX - hoursLeft * 3600) * 1000;
 
 const silent = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
 
@@ -34,19 +39,32 @@ const snap = (state, clanMembers = []) => ({
 });
 
 /**
- * @param {{ current: import("../src/features/war.js").WarSnapshot, previous: import("../src/features/war.js").WarSnapshot | null }} args
+ * @param {{ current: any, previous: any, linkStore?: any, now?: () => number }} args
  */
-function harness({ current, previous }) {
+function harness({ current, previous, linkStore, now }) {
     const warService = { getCurrentWar: vi.fn().mockResolvedValue(current) };
+    const state = new Map();
+    if (previous !== undefined) state.set("war", previous);
     const store = {
-        getSnapshot: vi.fn().mockReturnValue(previous),
-        setSnapshot: vi.fn(),
+        getSnapshot: vi.fn((k) => (state.has(k) ? state.get(k) : null)),
+        setSnapshot: vi.fn((k, v) => state.set(k, v)),
         close: vi.fn(),
     };
     const notifier = { send: vi.fn().mockResolvedValue(true) };
-    const watcher = createWarWatcher({ warService, store, notifier, logger: silent });
-    return { warService, store, notifier, watcher };
+    const watcher = createWarWatcher({
+        warService,
+        store,
+        notifier,
+        linkStore,
+        now,
+        logger: silent,
+    });
+    return { warService, store, notifier, watcher, state };
 }
+
+/** Count notifier sends to a given channel. @param {any} notifier @param {string} channel */
+const sendsTo = (notifier, channel) =>
+    notifier.send.mock.calls.filter((/** @type {any[]} */ c) => c[0] === channel).length;
 
 describe("war watcher", () => {
     it("posts to warLog on a state transition and persists the new snapshot", async () => {
@@ -135,6 +153,78 @@ describe("war watcher", () => {
 
         // only the war-start embed — not the pre-existing attacks
         expect(notifier.send).toHaveBeenCalledTimes(1);
+    });
+
+    describe("attack reminders", () => {
+        const linked = {
+            getByPlayer: vi.fn((tag) => (tag === "#A" ? { discordId: "disc-A" } : null)),
+        };
+
+        it("reminds members with attacks left as war nears end, @-mentioning linked users", async () => {
+            const roster = [attacker("#A", "Ann", [1]), attacker("#B", "Bob", [])];
+            const { notifier, store, watcher } = harness({
+                current: snap("inWar", roster),
+                previous: snap("inWar", roster),
+                linkStore: linked,
+                now: clockAt(1), // 1h left, within default 2h window
+            });
+
+            await watcher.poll();
+
+            const reminders = notifier.send.mock.calls.filter(
+                (/** @type {any[]} */ c) => c[0] === "warReminders",
+            );
+            expect(reminders).toHaveLength(1);
+            const payload = reminders[0][1];
+            expect(payload.content).toContain("<@disc-A>"); // linked → mention
+            expect(payload.content).toContain("**Bob**"); // unlinked → name
+            expect(payload.allowedMentions).toEqual({ users: ["disc-A"] });
+            expect(store.setSnapshot).toHaveBeenCalledWith("war:reminded", "20260702T120000.000Z");
+        });
+
+        it("reminds only once per war", async () => {
+            const roster = [attacker("#A", "Ann", [1])];
+            const { notifier, watcher } = harness({
+                current: snap("inWar", roster),
+                previous: snap("inWar", roster),
+                linkStore: linked,
+                now: clockAt(1),
+            });
+
+            await watcher.poll();
+            await watcher.poll();
+
+            expect(sendsTo(notifier, "warReminders")).toBe(1);
+        });
+
+        it("does not remind while the war is still far from ending", async () => {
+            const roster = [attacker("#A", "Ann", [1])];
+            const { notifier, watcher } = harness({
+                current: snap("inWar", roster),
+                previous: snap("inWar", roster),
+                linkStore: linked,
+                now: clockAt(10), // 10h left > 2h window
+            });
+
+            await watcher.poll();
+
+            expect(sendsTo(notifier, "warReminders")).toBe(0);
+        });
+
+        it("marks reminded without posting when everyone has attacked", async () => {
+            const roster = [attacker("#A", "Ann", [1, 2])]; // both attacks used
+            const { notifier, store, watcher } = harness({
+                current: snap("inWar", roster),
+                previous: snap("inWar", roster),
+                linkStore: linked,
+                now: clockAt(1),
+            });
+
+            await watcher.poll();
+
+            expect(sendsTo(notifier, "warReminders")).toBe(0);
+            expect(store.setSnapshot).toHaveBeenCalledWith("war:reminded", "20260702T120000.000Z");
+        });
     });
 
     it("degrades gracefully when the war log is private (403): warns, no throw, no write", async () => {

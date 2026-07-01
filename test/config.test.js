@@ -97,6 +97,11 @@ describe("loadConfig", () => {
         expect(() => loadConfig({ ...validEnv, ROLE_LEADER: "notanid" })).toThrowError(ConfigError);
     });
 
+    it("reads the war reminder window (REMIND_HOURS_BEFORE), default 2", () => {
+        expect(loadConfig(validEnv).war.remindHoursBefore).toBe(2);
+        expect(loadConfig({ ...validEnv, REMIND_HOURS_BEFORE: "6" }).war.remindHoursBefore).toBe(6);
+    });
+
     it("returns a deeply immutable config", () => {
         const cfg = loadConfig(validEnv);
         expect(() => {
