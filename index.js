@@ -1,4 +1,15 @@
-import { Client, GatewayIntentBits, MessageFlags, PermissionFlagsBits } from "discord.js";
+import {
+    Client,
+    GatewayIntentBits,
+    MessageFlags,
+    PermissionFlagsBits,
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+} from "discord.js";
 import dotenv from "dotenv";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
@@ -15,6 +26,7 @@ import { createWarWatcher } from "./src/features/war-watcher.js";
 import { createPlayerService } from "./src/coc/player.js";
 import { createLinkStore } from "./src/links.js";
 import { createLinker } from "./src/features/linking.js";
+import { applyClanRole } from "./src/discord/roles.js";
 import { normaliseTag } from "./src/coc/tag.js";
 import { clanInfoEmbed, warStartEmbed } from "./src/discord/embeds.js";
 
@@ -55,6 +67,43 @@ const scheduler = createScheduler({
         logger.error("poll failed", { message: err instanceof Error ? err.message : String(err) }),
 });
 
+/**
+ * Shared link flow for both /link and the #verify modal: verify + store, then
+ * (if the player is in our clan) sync their Discord role. Returns the ephemeral
+ * reply text. Never surfaces the token.
+ *
+ * @param {import("discord.js").ChatInputCommandInteraction | import("discord.js").ModalSubmitInteraction} interaction
+ * @param {string} tag
+ * @param {string} token
+ * @returns {Promise<string>}
+ */
+async function runLink(interaction, tag, token) {
+    const result = await linker.link(interaction.user.id, tag, token);
+    if (!result.ok) {
+        return "❌ That token didn't match. Get a fresh one in-game (Settings → More Settings → API Token) and try again.";
+    }
+    const p = result.player;
+    const inClan =
+        p.clanTag != null && normaliseTag(p.clanTag) === normaliseTag(config.coc.clanTag);
+    let roleNote = "";
+    if (inClan && interaction.guild) {
+        try {
+            const member = await interaction.guild.members.fetch(interaction.user.id);
+            const { add } = await applyClanRole(member, p.role, config.roles, logger);
+            if (add.length) roleNote = ` Assigned your **${roleLabel(p.role)}** role.`;
+        } catch (err) {
+            logger.warn("role assignment failed", {
+                message: err instanceof Error ? err.message : String(err),
+            });
+        }
+    }
+    return (
+        `✅ Linked **${p.name}** (${p.tag})` +
+        (inClan ? ` — ${roleLabel(p.role)} of ${p.clanName}.` : ".") +
+        roleNote
+    );
+}
+
 let started = false;
 discord.once("clientReady", () => {
     logger.info("logged in", { user: discord.user?.tag, guild: config.discord.guildId });
@@ -73,9 +122,40 @@ discord.once("clientReady", () => {
 });
 
 discord.on("interactionCreate", async (interaction) => {
-    if (!interaction.isChatInputCommand()) return;
-
     try {
+        // Onboarding: "Link my account" button opens a private modal.
+        if (interaction.isButton() && interaction.customId === "link:start") {
+            const modal = new ModalBuilder()
+                .setCustomId("link:modal")
+                .setTitle("Link your CoC account");
+            const tagInput = new TextInputBuilder()
+                .setCustomId("tag")
+                .setLabel("Player tag (e.g. #ABC123)")
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true);
+            const tokenInput = new TextInputBuilder()
+                .setCustomId("token")
+                .setLabel("In-game API token")
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true);
+            modal.addComponents(
+                new ActionRowBuilder().addComponents(tagInput),
+                new ActionRowBuilder().addComponents(tokenInput),
+            );
+            await interaction.showModal(modal);
+            return;
+        }
+
+        if (interaction.isModalSubmit() && interaction.customId === "link:modal") {
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+            const tag = interaction.fields.getTextInputValue("tag");
+            const token = interaction.fields.getTextInputValue("token");
+            await interaction.editReply(await runLink(interaction, tag, token));
+            return;
+        }
+
+        if (!interaction.isChatInputCommand()) return;
+
         switch (interaction.commandName) {
             case "ping":
                 await interaction.reply({ content: "Pong!", flags: MessageFlags.Ephemeral });
@@ -124,21 +204,34 @@ discord.on("interactionCreate", async (interaction) => {
                 await interaction.deferReply({ flags: MessageFlags.Ephemeral });
                 const tag = interaction.options.getString("tag", true);
                 const token = interaction.options.getString("token", true);
-                const result = await linker.link(interaction.user.id, tag, token);
-                if (!result.ok) {
-                    await interaction.editReply(
-                        "❌ That token didn't match. Get a fresh one in-game (Settings → More Settings → API Token) and try again.",
-                    );
+                await interaction.editReply(await runLink(interaction, tag, token));
+                break;
+            }
+
+            case "setup_verify": {
+                if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+                    await interaction.reply({
+                        content: "You need the Manage Server permission to use this.",
+                        flags: MessageFlags.Ephemeral,
+                    });
                     break;
                 }
-                const p = result.player;
-                const inClan =
-                    p.clanTag != null &&
-                    normaliseTag(p.clanTag) === normaliseTag(config.coc.clanTag);
-                await interaction.editReply(
-                    `✅ Linked **${p.name}** (${p.tag})` +
-                        (inClan ? ` — ${roleLabel(p.role)} of ${p.clanName}.` : "."),
-                );
+                const button = new ButtonBuilder()
+                    .setCustomId("link:start")
+                    .setLabel("Link my account")
+                    .setEmoji("🔗")
+                    .setStyle(ButtonStyle.Primary);
+                const posted = await notifier.send("verify", {
+                    content:
+                        "**Link your Clash of Clans account**\nClick below, then paste your player tag and an in-game API token (Settings → More Settings → API Token). You'll get your clan role automatically — only you can see what you enter.",
+                    components: [new ActionRowBuilder().addComponents(button)],
+                });
+                await interaction.reply({
+                    content: posted
+                        ? "Posted the link prompt to the verify channel."
+                        : "Couldn't post — is CHANNEL_VERIFY set and visible to the bot?",
+                    flags: MessageFlags.Ephemeral,
+                });
                 break;
             }
 

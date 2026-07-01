@@ -16,6 +16,11 @@ export const CommandManager = {
                 default_member_permissions: "32",
             },
             {
+                name: "setup_verify",
+                description: "(Admin) Post the account-link button to the verify channel",
+                default_member_permissions: "32",
+            },
+            {
                 name: "link",
                 description: "Link your Clash of Clans account to Discord",
                 options: [

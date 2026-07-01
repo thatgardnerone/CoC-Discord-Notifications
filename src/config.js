@@ -10,8 +10,10 @@
  * @property {Record<ChannelKey, string | null>} channels
  * @property {{ warSeconds: number, membersSeconds: number, capitalSeconds: number }} poll
  * @property {{ dbPath: string }} storage
+ * @property {Record<RoleKey, string | null>} roles
  *
  * @typedef {"warReminders"|"warLog"|"cwl"|"capital"|"clanFeed"|"verify"} ChannelKey
+ * @typedef {"leader"|"coLeader"|"elder"|"member"} RoleKey
  */
 
 const REQUIRED = [
@@ -30,6 +32,14 @@ const CHANNEL_ENV = {
     capital: "CHANNEL_CAPITAL",
     clanFeed: "CHANNEL_CLAN_FEED",
     verify: "CHANNEL_VERIFY",
+};
+
+/** @type {Record<RoleKey, string>} */
+const ROLE_ENV = {
+    leader: "ROLE_LEADER",
+    coLeader: "ROLE_COLEADER",
+    elder: "ROLE_ELDER",
+    member: "ROLE_MEMBER",
 };
 
 const SNOWFLAKE = /^\d{17,20}$/;
@@ -132,6 +142,16 @@ export function loadConfig(env = process.env) {
         channels[key] = value;
     }
 
+    const roles = /** @type {Record<RoleKey, string | null>} */ ({});
+    for (const key of /** @type {RoleKey[]} */ (Object.keys(ROLE_ENV))) {
+        const raw = env[ROLE_ENV[key]];
+        const value = raw && raw.trim() !== "" ? raw.trim() : null;
+        if (value !== null && !SNOWFLAKE.test(value)) {
+            invalid.push(`${ROLE_ENV[key]} (not a Discord role ID)`);
+        }
+        roles[key] = value;
+    }
+
     const poll = {
         warSeconds: positiveIntOr(env.POLL_WAR_SECONDS, 300, "POLL_WAR_SECONDS", invalid),
         membersSeconds: positiveIntOr(
@@ -156,5 +176,6 @@ export function loadConfig(env = process.env) {
         channels,
         poll,
         storage: { dbPath: env.COC_DB_PATH?.trim() || "data/coc.db" },
+        roles,
     });
 }
