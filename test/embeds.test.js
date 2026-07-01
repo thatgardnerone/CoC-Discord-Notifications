@@ -7,6 +7,7 @@ import {
     attackLogEmbed,
     missedAttackEmbed,
     attackReminderMessage,
+    cwlStatusEmbed,
 } from "../src/discord/embeds.js";
 
 /** @type {import("../src/features/war.js").ActiveWar} */
@@ -103,6 +104,13 @@ describe("war embeds", () => {
 
     it("attackLogEmbed does not throw on an empty list (no empty setDescription)", () => {
         expect(() => attackLogEmbed([]).toJSON()).not.toThrow();
+    });
+
+    it("cwlStatusEmbed shows the round, matchup and score", () => {
+        const data = cwlStatusEmbed(activeWar, 3).toJSON();
+        expect(data.title).toContain("CWL Round 3");
+        expect(data.title).toContain("Us vs Foes");
+        expect((data.fields ?? []).find((f) => f.name === "Stars")?.value).toBe("20 – 15");
     });
 
     it("attackReminderMessage lists due members with mentions and hours left", () => {

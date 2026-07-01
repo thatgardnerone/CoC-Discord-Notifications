@@ -111,6 +111,27 @@ export function missedAttackEmbed(war, missed) {
 }
 
 /**
+ * @param {import("../features/war.js").ActiveWar} war Oriented so `clan` is us.
+ * @param {number} round CWL round number (1–7).
+ * @returns {EmbedBuilder}
+ */
+export function cwlStatusEmbed(war, round) {
+    const stateLabel = { preparation: "Preparation", inWar: "Battle day", warEnded: "Ended" };
+    return new EmbedBuilder()
+        .setColor(0x9b59b6)
+        .setTitle(`🏆 CWL Round ${round} — ${war.clan.name} vs ${war.opponent.name}`)
+        .addFields(
+            { name: "State", value: stateLabel[war.state] ?? war.state, inline: true },
+            { name: "Stars", value: `${war.clan.stars} – ${war.opponent.stars}`, inline: true },
+            {
+                name: "Destruction",
+                value: `${war.clan.destruction.toFixed(1)}% – ${war.opponent.destruction.toFixed(1)}%`,
+                inline: true,
+            },
+        );
+}
+
+/**
  * @param {import("../features/war.js").ActiveWar} war
  * @param {import("../features/war.js").WarResult} result
  * @returns {EmbedBuilder}

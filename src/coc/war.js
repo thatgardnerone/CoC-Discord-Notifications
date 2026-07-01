@@ -19,10 +19,12 @@ export function createWarService(client, clanTag) {
 }
 
 /**
+ * Normalises a raw war payload (regular war or a CWL round war — same shape).
+ *
  * @param {any} data
  * @returns {import("../features/war.js").WarSnapshot}
  */
-function normaliseWar(data) {
+export function normaliseWar(data) {
     if (!data || data.state === "notInWar") return { state: "notInWar" };
     return {
         state: data.state,

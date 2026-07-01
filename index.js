@@ -19,6 +19,7 @@ import { createLogger } from "./src/logger.js";
 import { createCocClient } from "./src/coc/http.js";
 import { createClanService } from "./src/coc/clan.js";
 import { createWarService } from "./src/coc/war.js";
+import { createCwlService } from "./src/coc/cwl.js";
 import { createStore } from "./src/store.js";
 import { createScheduler } from "./src/scheduler.js";
 import { createNotifier } from "./src/discord/notifier.js";
@@ -28,7 +29,7 @@ import { createLinkStore } from "./src/links.js";
 import { createLinker } from "./src/features/linking.js";
 import { applyClanRole } from "./src/discord/roles.js";
 import { normaliseTag } from "./src/coc/tag.js";
-import { clanInfoEmbed, warStartEmbed } from "./src/discord/embeds.js";
+import { clanInfoEmbed, warStartEmbed, cwlStatusEmbed } from "./src/discord/embeds.js";
 
 /** @param {string | null} role */
 const roleLabel = (role) =>
@@ -55,6 +56,7 @@ mkdirSync(dirname(config.storage.dbPath), { recursive: true });
 const coc = createCocClient({ token: config.coc.token });
 const clanService = createClanService(coc, config.coc.clanTag);
 const warService = createWarService(coc, config.coc.clanTag);
+const cwlService = createCwlService(coc, config.coc.clanTag);
 const store = createStore(config.storage.dbPath);
 const discord = new Client({ intents: [GatewayIntentBits.Guilds] });
 const notifier = createNotifier({ client: discord, channels: config.channels, logger });
@@ -173,6 +175,24 @@ discord.on("interactionCreate", async (interaction) => {
                 await interaction.deferReply({ flags: MessageFlags.Ephemeral });
                 const clan = await clanService.getInfo();
                 await interaction.editReply({ embeds: [clanInfoEmbed(clan)] });
+                break;
+            }
+
+            case "cwl": {
+                await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+                const current = await cwlService.findCurrentWar();
+                if (current) {
+                    await interaction.editReply({
+                        embeds: [cwlStatusEmbed(current.war, current.round)],
+                    });
+                } else {
+                    const group = await cwlService.getLeagueGroup();
+                    await interaction.editReply(
+                        group
+                            ? `No active CWL war right now — last season **${group.season}** (${group.state}).`
+                            : "Not currently in Clan War League.",
+                    );
+                }
                 break;
             }
 
