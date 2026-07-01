@@ -21,7 +21,7 @@ const coc = createCocClient({ token: config.coc.token });
 const clanService = createClanService(coc, config.coc.clanTag);
 const discord = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-discord.once("ready", () => {
+discord.once("clientReady", () => {
     console.log(`Logged in as ${discord.user.tag} for guild ${config.discord.guildId}`);
 });
 
