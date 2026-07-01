@@ -111,7 +111,7 @@ describe("war embeds", () => {
                 { mention: "<@111>", remaining: 2 },
                 { mention: "**Bob**", remaining: 1 },
             ],
-            2,
+            "2h",
         );
         expect(msg).toContain("2h left");
         expect(msg).toContain("<@111> — 2 attacks left");

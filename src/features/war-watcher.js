@@ -124,8 +124,12 @@ export function createWarWatcher({
                     userId: link ? link.discordId : null,
                 };
             });
+            const timeLeft =
+                remaining >= 3600
+                    ? `${Math.round(remaining / 3600)}h`
+                    : `${Math.max(1, Math.round(remaining / 60))}m`;
             await notifier.send("warReminders", {
-                content: attackReminderMessage(resolved, Math.max(1, Math.round(remaining / 3600))),
+                content: attackReminderMessage(resolved, timeLeft),
                 allowedMentions: { users: resolved.map((r) => r.userId).filter(Boolean) },
             });
             logger.info(`war reminder posted: ${due.length} members`);

@@ -82,14 +82,14 @@ export function attackLogEmbed(attacks) {
  * caller (linked members → `<@id>`, otherwise their in-game name).
  *
  * @param {{ mention: string, remaining: number }[]} due
- * @param {number} hoursLeft
+ * @param {string} timeLeft Human label for time remaining, e.g. "2h" or "45m".
  * @returns {string}
  */
-export function attackReminderMessage(due, hoursLeft) {
+export function attackReminderMessage(due, timeLeft) {
     const lines = due.map(
         (d) => `${d.mention} — ${d.remaining} attack${d.remaining > 1 ? "s" : ""} left`,
     );
-    return `⏰ **${hoursLeft}h left** in the war — use your attacks!\n${lines.join("\n")}`;
+    return `⏰ **${timeLeft} left** in the war — use your attacks!\n${lines.join("\n")}`;
 }
 
 /**
