@@ -247,11 +247,16 @@ describe("capital embeds", () => {
         expect(fields.find((f) => f.name === "Offence Medals")?.value).toContain("188");
     });
 
+    it("raidEndEmbed title reflects whether the weekend is live (for /raid reuse)", () => {
+        expect(raidEndEmbed(raid({ state: "ongoing" })).toJSON().title).toContain("so far");
+        expect(raidEndEmbed(raid({ state: "ended" })).toJSON().title).toContain("over");
+    });
+
     it("capitalMissedEmbed lists missers, or celebrates when none", () => {
-        const missed = capitalMissedEmbed(raid(), [{ name: "Bob", used: 4, allowed: 6 }]).toJSON();
+        const missed = capitalMissedEmbed([{ name: "Bob", used: 4, allowed: 6 }]).toJSON();
         expect(missed.description).toContain("**Bob** — used 4/6");
 
-        const clean = capitalMissedEmbed(raid(), []).toJSON();
+        const clean = capitalMissedEmbed([]).toJSON();
         expect(clean.description).toContain("used all their attacks");
     });
 

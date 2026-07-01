@@ -153,9 +153,14 @@ export function raidStartEmbed(raid) {
  * @returns {EmbedBuilder}
  */
 export function raidEndEmbed(raid) {
+    // Reused by /raid mid-weekend, so the title reflects whether it's live.
+    const title =
+        raid.state === "ongoing"
+            ? "🏰 Raid weekend so far"
+            : "🏰 Raid weekend over — here's the haul";
     return new EmbedBuilder()
         .setColor(0xe67e22)
-        .setTitle("🏰 Raid weekend over — here's the haul")
+        .setTitle(title)
         .addFields(
             { name: "Capital Gold", value: `${num(raid.totalLoot)} 🟡`, inline: true },
             { name: "Raids Completed", value: String(raid.raidsCompleted), inline: true },
@@ -167,11 +172,10 @@ export function raidEndEmbed(raid) {
 }
 
 /**
- * @param {import("../features/capital.js").RaidSeason} raid
  * @param {{ name: string, used: number, allowed: number }[]} missed
  * @returns {EmbedBuilder}
  */
-export function capitalMissedEmbed(raid, missed) {
+export function capitalMissedEmbed(missed) {
     const description = missed.length
         ? missed
               .map((m) => `• **${m.name}** — used ${m.used}/${m.allowed}`)
@@ -186,7 +190,7 @@ export function capitalMissedEmbed(raid, missed) {
 
 /**
  * Capital-gold contribution leaderboard. Medals for the top three; loot shown
- * per member. Caps the list to keep within embed limits.
+ * per member. Capped at 50 (max clan raiders) — well within the 4096-char limit.
  *
  * @param {import("../features/capital.js").RaidMember[]} board
  * @returns {EmbedBuilder}
@@ -194,7 +198,7 @@ export function capitalMissedEmbed(raid, missed) {
 export function capitalLeaderboardEmbed(board) {
     const medal = ["🥇", "🥈", "🥉"];
     const lines = board
-        .slice(0, 25)
+        .slice(0, 50)
         .map((m, i) => `${medal[i] ?? `\`${i + 1}.\``} **${m.name}** — ${num(m.looted)} 🟡`);
     const description = lines.join("\n").slice(0, 4096) || "No participants.";
     return new EmbedBuilder()

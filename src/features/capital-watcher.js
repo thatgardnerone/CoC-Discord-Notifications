@@ -55,9 +55,7 @@ export function createCapitalWatcher({
                         // the capital-gold contribution leaderboard.
                         await notifier.send(feedChannel, { embeds: [raidEndEmbed(event.raid)] });
                         await notifier.send(feedChannel, {
-                            embeds: [
-                                capitalMissedEmbed(event.raid, computeMissedRaiders(event.raid)),
-                            ],
+                            embeds: [capitalMissedEmbed(computeMissedRaiders(event.raid))],
                         });
                         await notifier.send(feedChannel, {
                             embeds: [capitalLeaderboardEmbed(capitalLeaderboard(event.raid))],
