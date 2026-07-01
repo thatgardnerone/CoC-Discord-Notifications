@@ -163,6 +163,20 @@ describe("createCocClient — real fetch transport", () => {
         await expect(client.get("clans/x")).rejects.toMatchObject({ status: 0 });
     });
 
+    it("post sends a JSON body with content-type and returns parsed data", async () => {
+        const fetchImpl = vi.fn().mockResolvedValue(makeRes(200, { status: "ok" }));
+        const { sleep } = fakeSleep();
+        const client = createCocClient({ token: "t", fetchImpl, sleep });
+
+        const res = await client.post("players/%23X/verifytoken", { token: "abc" });
+
+        expect(res.data.status).toBe("ok");
+        const [, init] = fetchImpl.mock.calls[0];
+        expect(init.method).toBe("POST");
+        expect(init.headers["Content-Type"]).toBe("application/json");
+        expect(JSON.parse(init.body)).toEqual({ token: "abc" });
+    });
+
     it("parses a Retry-After HTTP-date header without busy-looping (regression)", async () => {
         const future = new Date(Date.now() + 5000).toUTCString();
         const fetchImpl = vi

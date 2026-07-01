@@ -31,7 +31,7 @@ export class HttpError extends Error {
 
 /**
  * @typedef {{ status: number, data: any, headers: Record<string, string> }} HttpResponse
- * @typedef {(req: { method: string, path: string }) => Promise<HttpResponse>} Transport
+ * @typedef {(req: { method: string, path: string, body?: unknown }) => Promise<HttpResponse>} Transport
  */
 
 /** @param {unknown} err @returns {boolean} */
@@ -99,16 +99,21 @@ function fetchTransport({
     timeout = 10000,
     fetchImpl = fetch,
 }) {
-    return async ({ method, path }) => {
+    return async ({ method, path, body }) => {
         const url = new URL(path, baseUrl).toString();
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), timeout);
+
+        /** @type {Record<string, string>} */
+        const headers = { Accept: "application/json", Authorization: `Bearer ${token}` };
+        if (body !== undefined) headers["Content-Type"] = "application/json";
 
         let res;
         try {
             res = await fetchImpl(url, {
                 method,
-                headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+                headers,
+                body: body !== undefined ? JSON.stringify(body) : undefined,
                 signal: controller.signal,
             });
         } catch {
@@ -195,5 +200,22 @@ export function createCocClient(opts = {}) {
         });
     }
 
-    return { get };
+    /**
+     * @param {string} path
+     * @param {unknown} body JSON-serialisable request body.
+     * @returns {Promise<HttpResponse>}
+     */
+    function post(path, body) {
+        return withRetry(() => send({ method: "POST", path, body }), {
+            retries,
+            baseMs: backoffBaseMs,
+            maxMs: maxBackoffMs,
+            sleep,
+            random,
+            isRetryable,
+            retryAfterMs,
+        });
+    }
+
+    return { get, post };
 }

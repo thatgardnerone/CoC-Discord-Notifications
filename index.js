@@ -12,7 +12,16 @@ import { createStore } from "./src/store.js";
 import { createScheduler } from "./src/scheduler.js";
 import { createNotifier } from "./src/discord/notifier.js";
 import { createWarWatcher } from "./src/features/war-watcher.js";
+import { createPlayerService } from "./src/coc/player.js";
+import { createLinkStore } from "./src/links.js";
+import { createLinker } from "./src/features/linking.js";
+import { normaliseTag } from "./src/coc/tag.js";
 import { clanInfoEmbed, warStartEmbed } from "./src/discord/embeds.js";
+
+/** @param {string | null} role */
+const roleLabel = (role) =>
+    ({ leader: "Leader", coLeader: "Co-Leader", admin: "Elder", member: "Member" })[role ?? ""] ??
+    "Member";
 
 dotenv.config();
 
@@ -38,6 +47,9 @@ const store = createStore(config.storage.dbPath);
 const discord = new Client({ intents: [GatewayIntentBits.Guilds] });
 const notifier = createNotifier({ client: discord, channels: config.channels, logger });
 const warWatcher = createWarWatcher({ warService, store, notifier, logger });
+const linkStore = createLinkStore(config.storage.dbPath);
+const playerService = createPlayerService(coc);
+const linker = createLinker({ playerService, linkStore });
 const scheduler = createScheduler({
     onError: (err) =>
         logger.error("poll failed", { message: err instanceof Error ? err.message : String(err) }),
@@ -107,6 +119,65 @@ discord.on("interactionCreate", async (interaction) => {
                 );
                 break;
             }
+
+            case "link": {
+                await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+                const tag = interaction.options.getString("tag", true);
+                const token = interaction.options.getString("token", true);
+                const result = await linker.link(interaction.user.id, tag, token);
+                if (!result.ok) {
+                    await interaction.editReply(
+                        "❌ That token didn't match. Get a fresh one in-game (Settings → More Settings → API Token) and try again.",
+                    );
+                    break;
+                }
+                const p = result.player;
+                const inClan = p.clanTag === config.coc.clanTag;
+                await interaction.editReply(
+                    `✅ Linked **${p.name}** (${p.tag})` +
+                        (inClan ? ` — ${roleLabel(p.role)} of ${p.clanName}.` : "."),
+                );
+                break;
+            }
+
+            case "whois": {
+                const target = interaction.options.getUser("member") ?? interaction.user;
+                const links = linkStore.listByDiscord(target.id);
+                const label = target.globalName ?? target.username;
+                if (links.length === 0) {
+                    await interaction.reply({
+                        content: `**${label}** has no linked accounts.`,
+                        flags: MessageFlags.Ephemeral,
+                    });
+                    break;
+                }
+                const lines = links
+                    .map((l) => `• **${l.playerName ?? "?"}** (${l.playerTag})`)
+                    .join("\n");
+                await interaction.reply({
+                    content: `**${label}** has linked:\n${lines}`,
+                    flags: MessageFlags.Ephemeral,
+                });
+                break;
+            }
+
+            case "unlink": {
+                const tag = normaliseTag(interaction.options.getString("tag", true));
+                const existing = linkStore.getByPlayer(tag);
+                if (!existing || existing.discordId !== interaction.user.id) {
+                    await interaction.reply({
+                        content: "You don't have that account linked.",
+                        flags: MessageFlags.Ephemeral,
+                    });
+                    break;
+                }
+                linkStore.unlink(tag);
+                await interaction.reply({
+                    content: `Unlinked ${tag}.`,
+                    flags: MessageFlags.Ephemeral,
+                });
+                break;
+            }
         }
     } catch (err) {
         logger.error("command failed", {
@@ -128,6 +199,7 @@ async function shutdown(signal) {
     scheduler.stop();
     try {
         store.close();
+        linkStore.close();
     } catch {
         // already closed
     }
