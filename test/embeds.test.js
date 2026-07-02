@@ -16,6 +16,7 @@ import {
     capitalLeaderboardEmbed,
     donationLeaderboardEmbed,
     donationTableEmbed,
+    dashboardEmbed,
 } from "../src/discord/embeds.js";
 
 /** @type {import("../src/features/war.js").ActiveWar} */
@@ -300,5 +301,62 @@ describe("donation embeds", () => {
     it("both donation embeds survive an empty list", () => {
         expect(() => donationLeaderboardEmbed([], "2026-W27").toJSON()).not.toThrow();
         expect(() => donationTableEmbed([]).toJSON()).not.toThrow();
+    });
+});
+
+describe("dashboardEmbed", () => {
+    const at = new Date("2026-07-02T12:00:00Z");
+    const fullView = {
+        clanName: "Us",
+        war: {
+            state: "inWar",
+            phase: "⚔️ Battle day",
+            opponent: "Foes",
+            ourStars: 20,
+            theirStars: 15,
+            ourDestruction: 55.5,
+            theirDestruction: 40.1,
+            startTime: "20260701T120000.000Z",
+            endTime: "20260702T120000.000Z",
+        },
+        raid: { totalLoot: 320582, districtsDestroyed: 12, endTime: "20260629T070000.000Z" },
+        topDonator: { name: "Bob", donated: 800 },
+        totals: { members: 42, warLeague: "Crystal III", level: 24, points: 30000 },
+    };
+
+    it("renders all four sections and a last-updated timestamp", () => {
+        const data = dashboardEmbed(fullView, at).toJSON();
+        expect(data.title).toContain("Us — Clan HQ");
+        const f = data.fields ?? [];
+        expect(f.find((x) => x.name.includes("War"))?.value).toContain("Foes");
+        expect(f.find((x) => x.name.includes("War"))?.value).toContain("⭐ 20–15");
+        expect(f.find((x) => x.name.includes("Raid"))?.value).toContain("320,582");
+        expect(f.find((x) => x.name.includes("Top donator"))?.value).toContain("Bob");
+        expect(f.find((x) => x.name === "📋 Clan")?.value).toContain("42/50");
+        expect(data.timestamp).toBeTruthy();
+    });
+
+    it("shows friendly idle lines when sections are empty (stable layout)", () => {
+        const idle = dashboardEmbed(
+            { clanName: "Clan", war: null, raid: null, topDonator: null, totals: null },
+            at,
+        ).toJSON();
+        const f = idle.fields ?? [];
+        expect(f).toHaveLength(4); // layout stays put across edits
+        expect(f.find((x) => x.name.includes("War"))?.value).toContain("No active war");
+        expect(f.find((x) => x.name.includes("Raid"))?.value).toContain("No raid weekend");
+        expect(f.find((x) => x.name.includes("Top donator"))?.value).toContain("Nothing tracked");
+        expect(f.find((x) => x.name === "📋 Clan")?.value).toBe("—");
+    });
+
+    it("labels the preparation phase with a battle-day countdown", () => {
+        const prep = dashboardEmbed(
+            {
+                ...fullView,
+                war: { ...fullView.war, state: "preparation", phase: "🛡️ Preparation" },
+            },
+            at,
+        ).toJSON();
+        expect(prep.fields?.find((x) => x.name.includes("War"))?.value).toContain("battle day");
     });
 });

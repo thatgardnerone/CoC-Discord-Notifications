@@ -29,6 +29,7 @@ import { createWarWatcher } from "./src/features/war-watcher.js";
 import { createMembersWatcher } from "./src/features/members-watcher.js";
 import { createCapitalWatcher } from "./src/features/capital-watcher.js";
 import { createDonationsWatcher } from "./src/features/donations-watcher.js";
+import { createDashboardWatcher } from "./src/features/dashboard-watcher.js";
 import { createPlayerService } from "./src/coc/player.js";
 import { createLinkStore } from "./src/links.js";
 import { createLinker } from "./src/features/linking.js";
@@ -104,6 +105,7 @@ const cwlWatcher = createWarWatcher({
 const membersWatcher = createMembersWatcher({ membersService, store, notifier, logger });
 const capitalWatcher = createCapitalWatcher({ capitalService, store, notifier, logger });
 const donationsWatcher = createDonationsWatcher({ membersService, store, notifier, logger });
+const dashboardWatcher = createDashboardWatcher({ store, notifier, clanService, logger });
 const playerService = createPlayerService(coc);
 const linker = createLinker({ playerService, linkStore });
 const scheduler = createScheduler({
@@ -161,6 +163,7 @@ discord.once("clientReady", () => {
     scheduler.every(config.poll.membersSeconds, () => membersWatcher.poll());
     scheduler.every(config.poll.capitalSeconds, () => capitalWatcher.poll());
     scheduler.every(config.poll.donationsSeconds, () => donationsWatcher.poll());
+    scheduler.every(config.poll.dashboardSeconds, () => dashboardWatcher.poll());
     scheduler.every(
         900,
         () => logger.info("heartbeat", { uptimeSec: Math.round(process.uptime()) }),

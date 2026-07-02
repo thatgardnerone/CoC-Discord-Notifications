@@ -8,12 +8,12 @@
  * @property {{ token: string, clientId: string, guildId: string }} discord
  * @property {{ token: string, clanTag: string }} coc
  * @property {Record<ChannelKey, string | null>} channels
- * @property {{ warSeconds: number, membersSeconds: number, capitalSeconds: number, donationsSeconds: number }} poll
+ * @property {{ warSeconds: number, membersSeconds: number, capitalSeconds: number, donationsSeconds: number, dashboardSeconds: number }} poll
  * @property {{ dbPath: string }} storage
  * @property {Record<RoleKey, string | null>} roles
  * @property {{ remindHoursBefore: number }} war
  *
- * @typedef {"warReminders"|"warLog"|"cwl"|"capital"|"clanFeed"|"donations"|"verify"} ChannelKey
+ * @typedef {"warReminders"|"warLog"|"cwl"|"capital"|"clanFeed"|"donations"|"clanHq"|"verify"} ChannelKey
  * @typedef {"leader"|"coLeader"|"elder"|"member"} RoleKey
  */
 
@@ -33,6 +33,7 @@ const CHANNEL_ENV = {
     capital: "CHANNEL_CAPITAL",
     clanFeed: "CHANNEL_CLAN_FEED",
     donations: "CHANNEL_DONATIONS",
+    clanHq: "CHANNEL_CLAN_HQ",
     verify: "CHANNEL_VERIFY",
 };
 
@@ -172,6 +173,12 @@ export function loadConfig(env = process.env) {
             env.POLL_DONATIONS_SECONDS,
             3600,
             "POLL_DONATIONS_SECONDS",
+            invalid,
+        ),
+        dashboardSeconds: positiveIntOr(
+            env.POLL_DASHBOARD_SECONDS,
+            300,
+            "POLL_DASHBOARD_SECONDS",
             invalid,
         ),
     };

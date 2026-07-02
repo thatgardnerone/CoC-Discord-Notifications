@@ -139,6 +139,58 @@ const ratioLabel = (donated, received) =>
     received > 0 ? (donated / received).toFixed(2) : donated > 0 ? "∞" : "—";
 
 /**
+ * The auto-updating Clan HQ dashboard embed. Rendered from a flat
+ * DashboardView (see dashboard.js) and edited in place every tick — each section
+ * degrades to a friendly idle line rather than disappearing, so the layout is
+ * stable across edits.
+ *
+ * @param {import("../features/dashboard.js").DashboardView} view
+ * @param {Date} at Render time (shown as the embed timestamp = "last updated").
+ * @returns {EmbedBuilder}
+ */
+export function dashboardEmbed(view, at) {
+    const w = view.war;
+    let warValue = "No active war 😴";
+    if (w) {
+        const score = `⭐ ${w.ourStars}–${w.theirStars} · ${w.ourDestruction.toFixed(1)}%–${w.theirDestruction.toFixed(1)}%`;
+        if (w.state === "preparation") {
+            warValue = `${w.phase} vs **${w.opponent}** · battle day ${discordTime(w.startTime)}`;
+        } else if (w.state === "inWar") {
+            warValue = `⚔️ vs **${w.opponent}**\n${score} · ends ${discordTime(w.endTime)}`;
+        } else if (w.state === "warEnded") {
+            warValue = `vs **${w.opponent}** — ${score} (final)`;
+        } else {
+            // Defensive: unknown state → show phase + score without a bogus label.
+            warValue = `${w.phase} vs **${w.opponent}**\n${score}`;
+        }
+    }
+
+    const raidValue = view.raid
+        ? `🟡 ${num(view.raid.totalLoot)} gold · ${view.raid.districtsDestroyed} districts · ends ${discordTime(view.raid.endTime)}`
+        : "No raid weekend active";
+
+    const donatorValue = view.topDonator
+        ? `👑 **${view.topDonator.name}** — ${num(view.topDonator.donated)} donated`
+        : "Nothing tracked yet this week";
+
+    const totalsValue = view.totals
+        ? `${view.totals.members}/50 members · ${view.totals.warLeague ?? "Unranked"} · Lvl ${view.totals.level} · ${num(view.totals.points)}🏆`
+        : "—";
+
+    return new EmbedBuilder()
+        .setColor(0x5865f2)
+        .setTitle(`🏰 ${view.clanName} — Clan HQ`)
+        .addFields(
+            { name: "⚔️ War", value: warValue },
+            { name: "🏰 Raid weekend", value: raidValue },
+            { name: "📊 Top donator (this week)", value: donatorValue },
+            { name: "📋 Clan", value: totalsValue },
+        )
+        .setFooter({ text: "Auto-updating · last refreshed" })
+        .setTimestamp(at);
+}
+
+/**
  * Shared monospaced donation table: rank, name, donated↑, received↓, ratio.
  *
  * @param {(import("../features/donations.js").DonationRow)[]} rows Pre-sorted.
