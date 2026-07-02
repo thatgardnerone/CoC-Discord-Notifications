@@ -134,6 +134,57 @@ export function cwlStatusEmbed(war, round) {
 /** @param {number} n @returns {string} */
 const num = (n) => n.toLocaleString("en-US");
 
+/** @param {number} donated @param {number} received @returns {string} */
+const ratioLabel = (donated, received) =>
+    received > 0 ? (donated / received).toFixed(2) : donated > 0 ? "∞" : "—";
+
+/**
+ * Shared monospaced donation table: rank, name, donated↑, received↓, ratio.
+ *
+ * @param {(import("../features/donations.js").DonationRow)[]} rows Pre-sorted.
+ * @param {number} limit
+ * @returns {string} Code-block body (already length-guarded).
+ */
+function donationTable(rows, limit) {
+    const medal = ["🥇", "🥈", "🥉"];
+    const lines = rows.slice(0, limit).map((r, i) => {
+        const rank = medal[i] ?? `${String(i + 1).padStart(2)}.`;
+        const name = r.name.length > 15 ? r.name.slice(0, 14) + "…" : r.name;
+        return (
+            `${rank} ${name.padEnd(15)} ${String(r.donated).padStart(5)}↑ ` +
+            `${String(r.received).padStart(5)}↓ ${ratioLabel(r.donated, r.received).padStart(5)}`
+        );
+    });
+    return lines.join("\n").slice(0, 4000) || "No donations.";
+}
+
+/**
+ * Weekly donation leaderboard (auto-posted at each ISO-week rollover).
+ *
+ * @param {import("../features/donations.js").DonationRow[]} rows Pre-sorted (donationLeaderboard).
+ * @param {string} period ISO-week key just completed, e.g. "2026-W27".
+ * @returns {EmbedBuilder}
+ */
+export function donationLeaderboardEmbed(rows, period) {
+    return new EmbedBuilder()
+        .setColor(0x1abc9c)
+        .setTitle(`📊 Weekly donation leaderboard — ${period}`)
+        .setDescription("```\n" + donationTable(rows, 25) + "\n```");
+}
+
+/**
+ * Current-season donation table (for /donations). Capped at 50 (max clan size).
+ *
+ * @param {import("../features/donations.js").DonationRow[]} rows Pre-sorted (currentSeasonTable).
+ * @returns {EmbedBuilder}
+ */
+export function donationTableEmbed(rows) {
+    return new EmbedBuilder()
+        .setColor(0x1abc9c)
+        .setTitle("📊 Season donations")
+        .setDescription("```\n" + donationTable(rows, 50) + "\n```");
+}
+
 /**
  * @param {import("../features/capital.js").RaidSeason} raid
  * @returns {EmbedBuilder}
