@@ -153,12 +153,15 @@ export function dashboardEmbed(view, at) {
     let warValue = "No active war 😴";
     if (w) {
         const score = `⭐ ${w.ourStars}–${w.theirStars} · ${w.ourDestruction.toFixed(1)}%–${w.theirDestruction.toFixed(1)}%`;
-        if (w.phase.includes("Preparation")) {
+        if (w.state === "preparation") {
             warValue = `${w.phase} vs **${w.opponent}** · battle day ${discordTime(w.startTime)}`;
-        } else if (w.phase.includes("Battle")) {
+        } else if (w.state === "inWar") {
             warValue = `⚔️ vs **${w.opponent}**\n${score} · ends ${discordTime(w.endTime)}`;
-        } else {
+        } else if (w.state === "warEnded") {
             warValue = `vs **${w.opponent}** — ${score} (final)`;
+        } else {
+            // Defensive: unknown state → show phase + score without a bogus label.
+            warValue = `${w.phase} vs **${w.opponent}**\n${score}`;
         }
     }
 

@@ -13,7 +13,7 @@
  *
  * @typedef {Object} DashboardView
  * @property {string} clanName
- * @property {null | { phase: string, opponent: string, ourStars: number, theirStars: number, ourDestruction: number, theirDestruction: number, startTime?: string, endTime?: string }} war
+ * @property {null | { state: string, phase: string, opponent: string, ourStars: number, theirStars: number, ourDestruction: number, theirDestruction: number, startTime?: string, endTime?: string }} war
  * @property {null | { totalLoot: number, districtsDestroyed: number, endTime: string }} raid
  * @property {null | { name: string, donated: number }} topDonator
  * @property {null | { members: number, warLeague: string | null, level: number, points: number }} totals
@@ -24,6 +24,23 @@ const WAR_PHASE = {
     inWar: "⚔️ Battle day",
     warEnded: "Ended",
 };
+
+/**
+ * Picks the war to show on the dashboard: a live regular war takes precedence,
+ * else a live CWL war, else whichever snapshot exists (so the section reads
+ * "no active war" rather than vanishing). Both snapshots share the WarSnapshot
+ * shape — CWL reuses the war watcher under a separate key.
+ *
+ * @param {WarSnapshot | null} war Regular-war snapshot (key "war").
+ * @param {WarSnapshot | null} cwl CWL-round snapshot (key "cwl").
+ * @returns {WarSnapshot | null}
+ */
+export function pickActiveWar(war, cwl) {
+    const isActive = (/** @type {WarSnapshot | null} */ w) => w != null && w.state !== "notInWar";
+    if (isActive(war)) return war;
+    if (isActive(cwl)) return cwl;
+    return war ?? cwl ?? null;
+}
 
 /**
  * The current weekly-tally leader, or null if nothing's been donated yet this
@@ -61,6 +78,7 @@ export function buildDashboardView({ war, raid, donations, clan }) {
     let warView = null;
     if (war && war.state !== "notInWar") {
         warView = {
+            state: war.state,
             phase: WAR_PHASE[war.state] ?? war.state,
             opponent: war.opponent.name,
             ourStars: war.clan.stars,

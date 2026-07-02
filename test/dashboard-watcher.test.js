@@ -88,12 +88,12 @@ describe("dashboard watcher", () => {
         expect(silent.warn).toHaveBeenCalled();
     });
 
-    it("reads the war, capital and donations snapshots", async () => {
+    it("reads the war, cwl, capital and donations snapshots", async () => {
         const h = harness();
         await h.watcher.poll();
         const keys = h.store.getSnapshot.mock.calls.map((c) => c[0]);
         expect(keys).toEqual(
-            expect.arrayContaining(["war", "capital", "donations", "dashboard:msg"]),
+            expect.arrayContaining(["war", "cwl", "capital", "donations", "dashboard:msg"]),
         );
     });
 });

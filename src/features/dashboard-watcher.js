@@ -1,4 +1,4 @@
-import { buildDashboardView } from "./dashboard.js";
+import { buildDashboardView, pickActiveWar } from "./dashboard.js";
 import { dashboardEmbed } from "../discord/embeds.js";
 
 /**
@@ -45,7 +45,9 @@ export function createDashboardWatcher({
             }
 
             const view = buildDashboardView({
-                war: store.getSnapshot("war"),
+                // Prefer a live regular war, else a live CWL round (both stored as
+                // WarSnapshots under their own keys).
+                war: pickActiveWar(store.getSnapshot("war"), store.getSnapshot("cwl")),
                 raid: store.getSnapshot("capital"),
                 donations: store.getSnapshot("donations"),
                 clan,

@@ -88,8 +88,19 @@ export function createNotifier({ client, channels, logger = console }) {
                         const existing = await channel.messages.fetch(messageId);
                         await existing.edit(payload);
                         return existing.id;
-                    } catch {
-                        // Message is gone (deleted/purged) — fall through to recreate.
+                    } catch (err) {
+                        // Only recreate when the message is genuinely gone (Discord
+                        // 10008 = Unknown Message). Any other failure — rate-limit,
+                        // 5xx, network blip — is transient and the message still
+                        // exists, so keep the id and retry next tick. Recreating on
+                        // those would orphan a still-pinned dashboard beside a fresh
+                        // one, leaking duplicates over time.
+                        if (/** @type {any} */ (err)?.code !== 10008) {
+                            logger.warn(
+                                `Dashboard edit failed in '${channelKey}', keeping id ${messageId}: ${err instanceof Error ? err.message : String(err)}`,
+                            );
+                            return messageId;
+                        }
                         logger.warn(
                             `Pinned message ${messageId} missing in '${channelKey}' — recreating`,
                         );

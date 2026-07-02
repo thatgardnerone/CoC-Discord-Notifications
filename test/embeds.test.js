@@ -309,6 +309,7 @@ describe("dashboardEmbed", () => {
     const fullView = {
         clanName: "Us",
         war: {
+            state: "inWar",
             phase: "⚔️ Battle day",
             opponent: "Foes",
             ourStars: 20,
@@ -350,7 +351,10 @@ describe("dashboardEmbed", () => {
 
     it("labels the preparation phase with a battle-day countdown", () => {
         const prep = dashboardEmbed(
-            { ...fullView, war: { ...fullView.war, phase: "🛡️ Preparation" } },
+            {
+                ...fullView,
+                war: { ...fullView.war, state: "preparation", phase: "🛡️ Preparation" },
+            },
             at,
         ).toJSON();
         expect(prep.fields?.find((x) => x.name.includes("War"))?.value).toContain("battle day");

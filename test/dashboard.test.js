@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildDashboardView, topDonator } from "../src/features/dashboard.js";
+import { buildDashboardView, topDonator, pickActiveWar } from "../src/features/dashboard.js";
 
 /** @param {Partial<import("../src/coc/clan.js").ClanInfo>} [over] */
 const clan = (over = {}) => ({
@@ -76,6 +76,22 @@ describe("topDonator", () => {
                 tally: { "#A": { tag: "#A", name: "Z", donated: 0, received: 5 } },
             }),
         ).toBeNull();
+    });
+});
+
+describe("pickActiveWar", () => {
+    /** @type {import("../src/features/war.js").WarSnapshot} */
+    const notIn = { state: "notInWar" };
+    it("prefers a live regular war over CWL", () => {
+        expect(pickActiveWar(inWar, { ...inWar, opponent: warSide("CwlFoe", 0, 0) })).toBe(inWar);
+    });
+    it("falls back to a live CWL round when no regular war is on", () => {
+        const cwl = { ...inWar, opponent: warSide("CwlFoe", 0, 0) };
+        expect(pickActiveWar(notIn, cwl)).toBe(cwl);
+    });
+    it("returns a notInWar snapshot (section reads idle) when neither is live", () => {
+        expect(pickActiveWar(notIn, notIn)).toBe(notIn);
+        expect(pickActiveWar(null, null)).toBeNull();
     });
 });
 
