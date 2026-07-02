@@ -28,6 +28,7 @@ import { createNotifier } from "./src/discord/notifier.js";
 import { createWarWatcher } from "./src/features/war-watcher.js";
 import { createMembersWatcher } from "./src/features/members-watcher.js";
 import { createCapitalWatcher } from "./src/features/capital-watcher.js";
+import { createDonationsWatcher } from "./src/features/donations-watcher.js";
 import { createPlayerService } from "./src/coc/player.js";
 import { createLinkStore } from "./src/links.js";
 import { createLinker } from "./src/features/linking.js";
@@ -40,8 +41,10 @@ import {
     rosterEmbed,
     raidEndEmbed,
     capitalLeaderboardEmbed,
+    donationTableEmbed,
 } from "./src/discord/embeds.js";
 import { capitalLeaderboard } from "./src/features/capital.js";
+import { currentSeasonTable } from "./src/features/donations.js";
 
 /** @param {string | null} role */
 const roleLabel = (role) =>
@@ -100,6 +103,7 @@ const cwlWatcher = createWarWatcher({
 });
 const membersWatcher = createMembersWatcher({ membersService, store, notifier, logger });
 const capitalWatcher = createCapitalWatcher({ capitalService, store, notifier, logger });
+const donationsWatcher = createDonationsWatcher({ membersService, store, notifier, logger });
 const playerService = createPlayerService(coc);
 const linker = createLinker({ playerService, linkStore });
 const scheduler = createScheduler({
@@ -156,6 +160,7 @@ discord.once("clientReady", () => {
     scheduler.every(config.poll.warSeconds, () => cwlWatcher.poll());
     scheduler.every(config.poll.membersSeconds, () => membersWatcher.poll());
     scheduler.every(config.poll.capitalSeconds, () => capitalWatcher.poll());
+    scheduler.every(config.poll.donationsSeconds, () => donationsWatcher.poll());
     scheduler.every(
         900,
         () => logger.info("heartbeat", { uptimeSec: Math.round(process.uptime()) }),
@@ -237,6 +242,15 @@ discord.on("interactionCreate", async (interaction) => {
                         ],
                     });
                 }
+                break;
+            }
+
+            case "donations": {
+                await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+                const members = await membersService.getMembers();
+                await interaction.editReply({
+                    embeds: [donationTableEmbed(currentSeasonTable(members))],
+                });
                 break;
             }
 

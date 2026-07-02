@@ -14,6 +14,8 @@ import {
     raidEndEmbed,
     capitalMissedEmbed,
     capitalLeaderboardEmbed,
+    donationLeaderboardEmbed,
+    donationTableEmbed,
 } from "../src/discord/embeds.js";
 
 /** @type {import("../src/features/war.js").ActiveWar} */
@@ -271,5 +273,32 @@ describe("capital embeds", () => {
 
     it("capitalLeaderboardEmbed does not throw on no participants", () => {
         expect(() => capitalLeaderboardEmbed([]).toJSON()).not.toThrow();
+    });
+});
+
+describe("donation embeds", () => {
+    const rows = [
+        { tag: "#A", name: "Ann", donated: 500, received: 100 },
+        { tag: "#B", name: "Bob", donated: 200, received: 0 },
+    ];
+
+    it("donationLeaderboardEmbed titles with the week and renders the table", () => {
+        const data = donationLeaderboardEmbed(rows, "2026-W27").toJSON();
+        expect(data.title).toContain("2026-W27");
+        expect(data.description).toContain("🥇");
+        expect(data.description).toContain("Ann");
+        expect(data.description).toContain("500↑");
+        expect(data.description).toContain("5.00"); // 500/100 ratio
+    });
+
+    it("donationTableEmbed shows ∞ for give-only members and — for none", () => {
+        const data = donationTableEmbed(rows).toJSON();
+        expect(data.title).toContain("Season donations");
+        expect(data.description).toContain("∞"); // Bob received 0
+    });
+
+    it("both donation embeds survive an empty list", () => {
+        expect(() => donationLeaderboardEmbed([], "2026-W27").toJSON()).not.toThrow();
+        expect(() => donationTableEmbed([]).toJSON()).not.toThrow();
     });
 });

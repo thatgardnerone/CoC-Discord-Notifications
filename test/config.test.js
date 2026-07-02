@@ -72,6 +72,18 @@ describe("loadConfig", () => {
     it("applies default poll intervals and honours valid overrides", () => {
         expect(loadConfig(validEnv).poll.warSeconds).toBe(300);
         expect(loadConfig({ ...validEnv, POLL_WAR_SECONDS: "30" }).poll.warSeconds).toBe(30);
+        expect(loadConfig(validEnv).poll.donationsSeconds).toBe(3600);
+        expect(
+            loadConfig({ ...validEnv, POLL_DONATIONS_SECONDS: "900" }).poll.donationsSeconds,
+        ).toBe(900);
+    });
+
+    it("exposes the donations channel like the others", () => {
+        expect(loadConfig(validEnv).channels.donations).toBeNull();
+        expect(
+            loadConfig({ ...validEnv, CHANNEL_DONATIONS: "1521776553116172390" }).channels
+                .donations,
+        ).toBe("1521776553116172390");
     });
 
     it("rejects malformed or non-positive poll intervals (no silent busy-loop)", () => {

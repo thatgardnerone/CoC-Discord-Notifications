@@ -22,6 +22,10 @@ export const CommandManager = {
                 description: "Show the current or most recent Clan Capital raid weekend",
             },
             {
+                name: "donations",
+                description: "Show the current-season donation table",
+            },
+            {
                 name: "debug_war",
                 description: "(Admin) Post a debug war-start preview to the war-log channel",
                 // Only members with Manage Server see/use this (bitfield for ManageGuild = 32).
