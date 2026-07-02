@@ -76,14 +76,22 @@ describe("loadConfig", () => {
         expect(
             loadConfig({ ...validEnv, POLL_DONATIONS_SECONDS: "900" }).poll.donationsSeconds,
         ).toBe(900);
+        expect(loadConfig(validEnv).poll.dashboardSeconds).toBe(300);
+        expect(
+            loadConfig({ ...validEnv, POLL_DASHBOARD_SECONDS: "120" }).poll.dashboardSeconds,
+        ).toBe(120);
     });
 
-    it("exposes the donations channel like the others", () => {
+    it("exposes the donations and clan-HQ channels like the others", () => {
         expect(loadConfig(validEnv).channels.donations).toBeNull();
+        expect(loadConfig(validEnv).channels.clanHq).toBeNull();
         expect(
             loadConfig({ ...validEnv, CHANNEL_DONATIONS: "1521776553116172390" }).channels
                 .donations,
         ).toBe("1521776553116172390");
+        expect(
+            loadConfig({ ...validEnv, CHANNEL_CLAN_HQ: "1521776553116172391" }).channels.clanHq,
+        ).toBe("1521776553116172391");
     });
 
     it("rejects malformed or non-positive poll intervals (no silent busy-loop)", () => {
